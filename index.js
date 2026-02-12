@@ -2,6 +2,7 @@ const config                = require('./config/index.config.js');
 const Cortex                = require('ion-cortex');
 const ManagersLoader        = require('./loaders/ManagersLoader.js');
 const Aeon                  = require('aeon-machine');
+const mongoConnect          = require('./connect/mongo.js');
 
 process.on('uncaughtException', err => {
     console.log(`Uncaught Exception:`)
@@ -37,6 +38,13 @@ const cortex     = new Cortex({
     idlDelay: "200",
 });
 const aeon = new Aeon({ cortex , timestampFrom: Date.now(), segmantDuration: 500 });
+
+// Initialize MongoDB connection
+if (config.dotEnv.MONGO_URI) {
+    mongoConnect({ uri: config.dotEnv.MONGO_URI });
+} else {
+    console.log('⚠️  MONGO_URI not found in environment variables. MongoDB features will be disabled.');
+}
 
 const managersLoader = new ManagersLoader({config, cache, cortex, oyster, aeon});
 const managers = managersLoader.load();

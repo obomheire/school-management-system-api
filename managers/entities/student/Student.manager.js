@@ -1,0 +1,329 @@
+const mongoose = require('mongoose');
+const Student = require('./student.mongoModel');
+const Classroom = require('../classroom/classroom.mongoModel');
+const School = require('../school/school.mongoModel');
+const CONSTANTS = require('../../_common/constants');
+
+module.exports = class StudentManager {
+    constructor({ config, managers, validators }) {
+        this.config = config;
+        this.managers = managers;
+        this.validators = validators;
+
+        this.httpExposed = [
+            'post=enrollStudent',
+            'get=listStudents',
+            'get=getStudent',
+            'post=updateStudent',
+            'post=deleteStudent',
+            'post=transferStudent'
+        ];
+    }
+
+    async enrollStudent({ __token, __schoolScope, firstName, lastName, dateOfBirth, studentId, classroomId, guardianInfo }) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const schoolId = __schoolScope.schoolId;
+
+            // Verify classroom belongs to this school
+            const classroom = await Classroom.findOne({
+                _id: classroomId,
+                school: schoolId
+            }).session(session);
+
+            if (!classroom) {
+                await session.abortTransaction();
+                return { errors: ['Classroom not found or does not belong to this school'] };
+            }
+
+            // Check classroom capacity
+            if (!classroom.hasSpace(1)) {
+                await session.abortTransaction();
+                return { errors: ['Classroom is at full capacity'] };
+            }
+
+            // Check if student ID already exists
+            const existingStudent = await Student.findByStudentId(studentId);
+            if (existingStudent) {
+                await session.abortTransaction();
+                return { errors: ['Student ID already exists'] };
+            }
+
+            // Create student
+            const student = new Student({
+                firstName,
+                lastName,
+                dateOfBirth,
+                studentId,
+                school: schoolId,
+                classroom: classroomId,
+                guardianInfo,
+                enrollmentDate: new Date(),
+                status: CONSTANTS.STUDENT_STATUS.ACTIVE
+            });
+
+            await student.save({ session });
+
+            // Increment classroom enrollment
+            await classroom.incrementEnrollment(1);
+
+            await session.commitTransaction();
+
+            return { student };
+
+        } catch (error) {
+            await session.abortTransaction();
+            console.error('Enroll student error:', error);
+            if (error.code === 11000) {
+                return { errors: ['Student ID already exists'] };
+            }
+            return { errors: ['Failed to enroll student'] };
+        } finally {
+            session.endSession();
+        }
+    }
+
+    async listStudents({ __token, __schoolScope, __query }) {
+        try {
+            const schoolId = __schoolScope.schoolId;
+
+            const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
+            const limit = Math.min(
+                parseInt(__query.limit) || CONSTANTS.PAGINATION.DEFAULT_LIMIT,
+                CONSTANTS.PAGINATION.MAX_LIMIT
+            );
+            const skip = (page - 1) * limit;
+
+            const filter = { school: schoolId };
+            if (__query.status) {
+                filter.status = __query.status;
+            }
+            if (__query.classroomId) {
+                filter.classroom = __query.classroomId;
+            }
+
+            const [students, total] = await Promise.all([
+                Student.find(filter)
+                    .skip(skip)
+                    .limit(limit)
+                    .populate('classroom', 'name roomNumber gradeLevel')
+                    .sort({ lastName: 1, firstName: 1 })
+                    .lean(),
+                Student.countDocuments(filter)
+            ]);
+
+            return {
+                students,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+
+        } catch (error) {
+            console.error('List students error:', error);
+            return { errors: ['Failed to fetch students'] };
+        }
+    }
+
+    async getStudent({ __token, __schoolScope, __params }) {
+        try {
+            const studentId = __params.studentId || __params.id;
+            const schoolId = __schoolScope.schoolId;
+
+            if (!studentId) {
+                return { errors: ['Student ID is required'] };
+            }
+
+            const student = await Student.findOne({
+                _id: studentId,
+                school: schoolId
+            })
+                .populate('school', 'name address contactInfo')
+                .populate('classroom', 'name roomNumber gradeLevel capacity')
+                .lean();
+
+            if (!student) {
+                return { errors: ['Student not found or access denied'] };
+            }
+
+            return { student };
+
+        } catch (error) {
+            console.error('Get student error:', error);
+            return { errors: ['Failed to fetch student'] };
+        }
+    }
+
+    async updateStudent({ __token, __schoolScope, __params, firstName, lastName, guardianInfo, status }) {
+        try {
+            const studentId = __params.studentId || __params.id;
+            const schoolId = __schoolScope.schoolId;
+
+            if (!studentId) {
+                return { errors: ['Student ID is required'] };
+            }
+
+            const student = await Student.findOne({
+                _id: studentId,
+                school: schoolId
+            });
+
+            if (!student) {
+                return { errors: ['Student not found or access denied'] };
+            }
+
+            if (firstName) student.firstName = firstName;
+            if (lastName) student.lastName = lastName;
+            if (guardianInfo) student.guardianInfo = { ...student.guardianInfo, ...guardianInfo };
+            if (status) student.status = status;
+
+            await student.save();
+
+            return { student };
+
+        } catch (error) {
+            console.error('Update student error:', error);
+            return { errors: ['Failed to update student'] };
+        }
+    }
+
+    async deleteStudent({ __token, __schoolScope, __params }) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const studentId = __params.studentId || __params.id;
+            const schoolId = __schoolScope.schoolId;
+
+            if (!studentId) {
+                await session.abortTransaction();
+                return { errors: ['Student ID is required'] };
+            }
+
+            const student = await Student.findOne({
+                _id: studentId,
+                school: schoolId
+            }).session(session);
+
+            if (!student) {
+                await session.abortTransaction();
+                return { errors: ['Student not found or access denied'] };
+            }
+
+            // Decrement classroom enrollment
+            const classroom = await Classroom.findById(student.classroom).session(session);
+            if (classroom) {
+                await classroom.decrementEnrollment(1);
+            }
+
+            // Soft delete student
+            student.status = CONSTANTS.STUDENT_STATUS.WITHDRAWN;
+            await student.save({ session });
+
+            await session.commitTransaction();
+
+            return { message: 'Student deleted successfully' };
+
+        } catch (error) {
+            await session.abortTransaction();
+            console.error('Delete student error:', error);
+            return { errors: ['Failed to delete student'] };
+        } finally {
+            session.endSession();
+        }
+    }
+
+    async transferStudent({ __token, __schoolScope, __params, targetSchoolId, targetClassroomId, reason }) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const studentId = __params.studentId || __params.id;
+            const currentSchoolId = __schoolScope.schoolId;
+
+            if (!studentId || !targetSchoolId || !targetClassroomId) {
+                await session.abortTransaction();
+                return { errors: ['Student ID, target school ID, and target classroom ID are required'] };
+            }
+
+            // Fetch student
+            const student = await Student.findOne({
+                _id: studentId,
+                school: currentSchoolId
+            }).session(session);
+
+            if (!student) {
+                await session.abortTransaction();
+                return { errors: ['Student not found or access denied'] };
+            }
+
+            // Verify target school exists
+            const targetSchool = await School.findById(targetSchoolId).session(session);
+            if (!targetSchool || targetSchool.status !== CONSTANTS.SCHOOL_STATUS.ACTIVE) {
+                await session.abortTransaction();
+                return { errors: ['Target school not found or inactive'] };
+            }
+
+            // Verify target classroom belongs to target school
+            const targetClassroom = await Classroom.findOne({
+                _id: targetClassroomId,
+                school: targetSchoolId
+            }).session(session);
+
+            if (!targetClassroom) {
+                await session.abortTransaction();
+                return { errors: ['Target classroom not found or does not belong to target school'] };
+            }
+
+            // Check target classroom capacity
+            if (!targetClassroom.hasSpace(1)) {
+                await session.abortTransaction();
+                return { errors: ['Target classroom is at full capacity'] };
+            }
+
+            // Get current classroom
+            const currentClassroom = await Classroom.findById(student.classroom).session(session);
+
+            // Update enrollment counts
+            if (currentClassroom) {
+                await currentClassroom.decrementEnrollment(1);
+            }
+            await targetClassroom.incrementEnrollment(1);
+
+            // Add transfer record
+            student.addTransferRecord(
+                currentSchoolId,
+                targetSchoolId,
+                student.classroom,
+                targetClassroomId,
+                reason
+            );
+
+            // Update student's school and classroom
+            student.school = targetSchoolId;
+            student.classroom = targetClassroomId;
+            student.status = CONSTANTS.STUDENT_STATUS.TRANSFERRED;
+
+            await student.save({ session });
+
+            await session.commitTransaction();
+
+            return {
+                message: 'Student transferred successfully',
+                student
+            };
+
+        } catch (error) {
+            await session.abortTransaction();
+            console.error('Transfer student error:', error);
+            return { errors: ['Failed to transfer student'] };
+        } finally {
+            session.endSession();
+        }
+    }
+};
