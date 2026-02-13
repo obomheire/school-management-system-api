@@ -21,6 +21,26 @@ module.exports = class StudentManager {
         ];
     }
 
+    _resolveStudentIdentifier({ studentId, __params, __query }) {
+        return (
+            (__params && (__params.studentId || __params.id)) ||
+            (__query && (__query.studentId || __query.id)) ||
+            studentId ||
+            null
+        );
+    }
+
+    _buildStudentFilter({ schoolId, identifier }) {
+        if (!identifier) return null;
+        const filter = { school: schoolId };
+        if (mongoose.Types.ObjectId.isValid(identifier)) {
+            filter.$or = [{ _id: identifier }, { studentId: identifier }];
+            return filter;
+        }
+        filter.studentId = identifier;
+        return filter;
+    }
+
     async enrollStudent({ __token, __role, __schoolScope, __params, __query, schoolId, firstName, lastName, dateOfBirth, studentId, classroomId, guardianInfo }) {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -152,7 +172,7 @@ module.exports = class StudentManager {
 
     async getStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId }) {
         try {
-            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
+            const targetStudentIdentifier = this._resolveStudentIdentifier({ studentId, __params, __query });
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -163,14 +183,16 @@ module.exports = class StudentManager {
             if (access.error) return { errors: [access.error] };
             const targetSchoolId = access.schoolId;
 
-            if (!targetStudentId) {
+            if (!targetStudentIdentifier) {
                 return { errors: ['Student ID is required'] };
             }
 
-            const student = await Student.findOne({
-                _id: targetStudentId,
-                school: targetSchoolId
-            })
+            const filter = this._buildStudentFilter({
+                schoolId: targetSchoolId,
+                identifier: targetStudentIdentifier,
+            });
+
+            const student = await Student.findOne(filter)
                 .populate('school', 'name address contactInfo')
                 .populate('classroom', 'name roomNumber gradeLevel capacity')
                 .lean();
@@ -187,9 +209,9 @@ module.exports = class StudentManager {
         }
     }
 
-    async updateStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId, firstName, lastName, guardianInfo, status }) {
+    async updateStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId, firstName, lastName, dateOfBirth, guardianInfo, status }) {
         try {
-            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
+            const targetStudentIdentifier = this._resolveStudentIdentifier({ studentId, __params, __query });
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -200,14 +222,16 @@ module.exports = class StudentManager {
             if (access.error) return { errors: [access.error] };
             const targetSchoolId = access.schoolId;
 
-            if (!targetStudentId) {
+            if (!targetStudentIdentifier) {
                 return { errors: ['Student ID is required'] };
             }
 
-            const student = await Student.findOne({
-                _id: targetStudentId,
-                school: targetSchoolId
+            const filter = this._buildStudentFilter({
+                schoolId: targetSchoolId,
+                identifier: targetStudentIdentifier,
             });
+
+            const student = await Student.findOne(filter);
 
             if (!student) {
                 return { errors: ['Student not found or access denied'] };
@@ -215,6 +239,7 @@ module.exports = class StudentManager {
 
             if (firstName) student.firstName = firstName;
             if (lastName) student.lastName = lastName;
+            if (dateOfBirth) student.dateOfBirth = dateOfBirth;
             if (guardianInfo) student.guardianInfo = { ...student.guardianInfo, ...guardianInfo };
             if (status) student.status = status;
 
@@ -233,7 +258,7 @@ module.exports = class StudentManager {
         session.startTransaction();
 
         try {
-            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
+            const targetStudentIdentifier = this._resolveStudentIdentifier({ studentId, __params, __query });
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -247,15 +272,17 @@ module.exports = class StudentManager {
             }
             const targetSchoolId = access.schoolId;
 
-            if (!targetStudentId) {
+            if (!targetStudentIdentifier) {
                 await session.abortTransaction();
                 return { errors: ['Student ID is required'] };
             }
 
-            const student = await Student.findOne({
-                _id: targetStudentId,
-                school: targetSchoolId
-            }).session(session);
+            const filter = this._buildStudentFilter({
+                schoolId: targetSchoolId,
+                identifier: targetStudentIdentifier,
+            });
+
+            const student = await Student.findOne(filter).session(session);
 
             if (!student) {
                 await session.abortTransaction();
@@ -290,7 +317,7 @@ module.exports = class StudentManager {
         session.startTransaction();
 
         try {
-            const sourceStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
+            const sourceStudentIdentifier = this._resolveStudentIdentifier({ studentId, __params, __query });
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -304,7 +331,7 @@ module.exports = class StudentManager {
             }
             const currentSchoolId = access.schoolId;
 
-            if (!sourceStudentId || !targetSchoolId || !targetClassroomId) {
+            if (!sourceStudentIdentifier || !targetSchoolId || !targetClassroomId) {
                 await session.abortTransaction();
                 return { errors: ['Student ID, target school ID, and target classroom ID are required'] };
             }
@@ -315,10 +342,12 @@ module.exports = class StudentManager {
             }
 
             // Fetch student
-            const student = await Student.findOne({
-                _id: sourceStudentId,
-                school: currentSchoolId
-            }).session(session);
+            const filter = this._buildStudentFilter({
+                schoolId: currentSchoolId,
+                identifier: sourceStudentIdentifier,
+            });
+
+            const student = await Student.findOne(filter).session(session);
 
             if (!student) {
                 await session.abortTransaction();
