@@ -1,6 +1,7 @@
 const School = require('./school.mongoModel');
 const User = require('../user/user.mongoModel');
 const CONSTANTS = require('../../_common/constants');
+const rbacHelper = require('../../_common/rbac.helper');
 
 module.exports = class SchoolManager {
     constructor({ config, managers, validators, cache }) {
@@ -19,11 +20,39 @@ module.exports = class SchoolManager {
         ];
     }
 
+    _requireRoleData(__role) {
+        if (!__role || !__role.role) {
+            return { errors: ['Authentication required'] };
+        }
+        return null;
+    }
+
+    _requireSuperadmin(__role) {
+        const roleError = this._requireRoleData(__role);
+        if (roleError) return roleError;
+        if (!rbacHelper.isSuperadmin(__role.role)) {
+            return { errors: ['Access denied. Superadmin role required'] };
+        }
+        return null;
+    }
+
+    _resolveRequestedSchoolId({ __params, __query, schoolId }) {
+        return (
+            schoolId ||
+            (__params && (__params.schoolId || __params.id)) ||
+            (__query && (__query.schoolId || __query.id)) ||
+            null
+        );
+    }
+
     /**
      * Create a new school (Superadmin only)
      */
     async createSchool({ __token, __role, name, address, contactInfo, metadata }) {
         try {
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
+
             // Check if school with same name exists
             const existing = await School.findByName(name);
             if (existing) {
@@ -61,12 +90,39 @@ module.exports = class SchoolManager {
      */
     async listSchools({ __token, __role, __query }) {
         try {
+            const roleError = this._requireRoleData(__role);
+            if (roleError) return roleError;
+
             const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
             const limit = Math.min(
                 parseInt(__query.limit) || CONSTANTS.PAGINATION.DEFAULT_LIMIT,
                 CONSTANTS.PAGINATION.MAX_LIMIT
             );
             const skip = (page - 1) * limit;
+
+            if (rbacHelper.isSchoolAdmin(__role.role)) {
+                if (!__role.assignedSchool) {
+                    return { errors: ['No school assigned to this administrator'] };
+                }
+
+                const school = await School.findById(__role.assignedSchool).lean();
+                const matchesStatus = !__query.status || (school && school.status === __query.status);
+                const schools = school && matchesStatus ? [school] : [];
+
+                return {
+                    schools,
+                    pagination: {
+                        page: 1,
+                        limit: 1,
+                        total: schools.length,
+                        pages: schools.length ? 1 : 0
+                    }
+                };
+            }
+
+            if (!rbacHelper.isSuperadmin(__role.role)) {
+                return { errors: ['Access denied'] };
+            }
 
             const filter = {};
             if (__query.status) {
@@ -101,21 +157,37 @@ module.exports = class SchoolManager {
     /**
      * Get single school by ID (Superadmin only)
      */
-    async getSchool({ __token, __role, __params }) {
+    async getSchool({ __token, __role, __params, __query, schoolId }) {
         try {
-            const schoolId = __params.schoolId || __params.id;
+            const roleError = this._requireRoleData(__role);
+            if (roleError) return roleError;
 
-            if (!schoolId) {
+            const requestedSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+            let targetSchoolId = requestedSchoolId;
+
+            if (rbacHelper.isSchoolAdmin(__role.role)) {
+                if (!__role.assignedSchool) {
+                    return { errors: ['No school assigned to this administrator'] };
+                }
+                if (requestedSchoolId && requestedSchoolId !== __role.assignedSchool) {
+                    return { errors: ['Access denied. You can only access your assigned school.'] };
+                }
+                targetSchoolId = __role.assignedSchool;
+            } else if (!rbacHelper.isSuperadmin(__role.role)) {
+                return { errors: ['Access denied'] };
+            }
+
+            if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
             }
 
             // Try to get from cache first
-            const cached = await this.cache.key.get({ key: `school:${schoolId}` });
+            const cached = await this.cache.key.get({ key: `school:${targetSchoolId}` });
             if (cached) {
                 return { school: JSON.parse(cached) };
             }
 
-            const school = await School.findById(schoolId)
+            const school = await School.findById(targetSchoolId)
                 .populate('administrators', 'username email role')
                 .lean();
 
@@ -125,7 +197,7 @@ module.exports = class SchoolManager {
 
             // Cache the result
             await this.cache.key.set({
-                key: `school:${schoolId}`,
+                key: `school:${targetSchoolId}`,
                 data: JSON.stringify(school),
                 ttl: 3600,
             });
@@ -141,15 +213,31 @@ module.exports = class SchoolManager {
     /**
      * Update school (Superadmin only)
      */
-    async updateSchool({ __token, __role, __params, name, address, contactInfo, status, metadata }) {
+    async updateSchool({ __token, __role, __params, __query, schoolId, name, address, contactInfo, status, metadata }) {
         try {
-            const schoolId = __params.schoolId || __params.id;
+            const roleError = this._requireRoleData(__role);
+            if (roleError) return roleError;
 
-            if (!schoolId) {
+            const requestedSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+            let targetSchoolId = requestedSchoolId;
+
+            if (rbacHelper.isSchoolAdmin(__role.role)) {
+                if (!__role.assignedSchool) {
+                    return { errors: ['No school assigned to this administrator'] };
+                }
+                if (requestedSchoolId && requestedSchoolId !== __role.assignedSchool) {
+                    return { errors: ['Access denied. You can only manage your assigned school.'] };
+                }
+                targetSchoolId = __role.assignedSchool;
+            } else if (!rbacHelper.isSuperadmin(__role.role)) {
+                return { errors: ['Access denied'] };
+            }
+
+            if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
             }
 
-            const school = await School.findById(schoolId);
+            const school = await School.findById(targetSchoolId);
 
             if (!school) {
                 return { errors: ['School not found'] };
@@ -165,7 +253,7 @@ module.exports = class SchoolManager {
             await school.save();
 
             // Invalidate cache
-            await this.cache.key.delete({ key: `school:${schoolId}` });
+            await this.cache.key.delete({ key: `school:${targetSchoolId}` });
 
             return { school };
 
@@ -178,15 +266,18 @@ module.exports = class SchoolManager {
     /**
      * Delete school (Soft delete - set status to inactive)
      */
-    async deleteSchool({ __token, __role, __params }) {
+    async deleteSchool({ __token, __role, __params, __query, schoolId }) {
         try {
-            const schoolId = __params.schoolId || __params.id;
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
-            if (!schoolId) {
+            const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+
+            if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
             }
 
-            const school = await School.findById(schoolId);
+            const school = await School.findById(targetSchoolId);
 
             if (!school) {
                 return { errors: ['School not found'] };
@@ -197,7 +288,7 @@ module.exports = class SchoolManager {
             await school.save();
 
             // Invalidate cache
-            await this.cache.key.delete({ key: `school:${schoolId}` });
+            await this.cache.key.delete({ key: `school:${targetSchoolId}` });
 
             return { message: 'School deleted successfully' };
 
@@ -210,11 +301,14 @@ module.exports = class SchoolManager {
     /**
      * Assign administrator to school
      */
-    async assignAdministrator({ __token, __role, __params, adminId }) {
+    async assignAdministrator({ __token, __role, __params, __query, schoolId, adminId }) {
         try {
-            const schoolId = __params.schoolId || __params.id;
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
-            if (!schoolId || !adminId) {
+            const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+
+            if (!targetSchoolId || !adminId) {
                 return { errors: ['School ID and Admin ID are required'] };
             }
 
@@ -229,11 +323,11 @@ module.exports = class SchoolManager {
             }
 
             // Update admin's assigned school
-            admin.assignedSchool = schoolId;
+            admin.assignedSchool = targetSchoolId;
             await admin.save();
 
             // Add admin to school's administrators array
-            const school = await School.findById(schoolId);
+            const school = await School.findById(targetSchoolId);
             if (!school) {
                 return { errors: ['School not found'] };
             }
@@ -241,7 +335,7 @@ module.exports = class SchoolManager {
             await school.addAdministrator(adminId);
 
             // Invalidate cache
-            await this.cache.key.delete({ key: `school:${schoolId}` });
+            await this.cache.key.delete({ key: `school:${targetSchoolId}` });
 
             return { message: 'Administrator assigned successfully', school };
 
