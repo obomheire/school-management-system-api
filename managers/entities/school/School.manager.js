@@ -49,6 +49,11 @@ module.exports = class SchoolManager {
         );
     }
 
+    async _getActorFromToken(__token) {
+        if (!__token || !__token.userId) return null;
+        return User.findById(__token.userId).select('role assignedSchool status').lean();
+    }
+
     /**
      * Create a new school (Superadmin only)
      */
@@ -94,8 +99,10 @@ module.exports = class SchoolManager {
      */
     async listSchools({ __token, __role, __query }) {
         try {
-            const roleError = this._requireRoleData(__role);
-            if (roleError) return roleError;
+            const actor = await this._getActorFromToken(__token);
+            if (!actor || actor.status !== CONSTANTS.USER_STATUS.ACTIVE) {
+                return { errors: ['Authentication required'] };
+            }
 
             const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
             const limit = Math.min(
@@ -104,12 +111,16 @@ module.exports = class SchoolManager {
             );
             const skip = (page - 1) * limit;
 
-            if (rbacHelper.isSchoolAdmin(__role.role)) {
-                if (!__role.assignedSchool) {
+            if (rbacHelper.isSchoolAdmin(actor.role)) {
+                if (!actor.assignedSchool) {
                     return { errors: ['No school assigned to this administrator'] };
                 }
 
-                const school = await School.findById(__role.assignedSchool).lean();
+                const school = await School.findOne({
+                    _id: actor.assignedSchool,
+                    status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
+                    administrators: actor._id,
+                }).lean();
                 const schools = school && school.status === CONSTANTS.SCHOOL_STATUS.ACTIVE ? [school] : [];
 
                 return {
@@ -123,7 +134,7 @@ module.exports = class SchoolManager {
                 };
             }
 
-            if (!rbacHelper.isSuperadmin(__role.role)) {
+            if (!rbacHelper.isSuperadmin(actor.role)) {
                 return { errors: ['Access denied'] };
             }
 
