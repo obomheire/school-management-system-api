@@ -1,5 +1,6 @@
 const Classroom = require('./classroom.mongoModel');
 const School = require('../school/school.mongoModel');
+const Student = require('../student/student.mongoModel');
 const CONSTANTS = require('../../_common/constants');
 const schoolAccessGuard = require('../../_common/schoolAccess.guard');
 
@@ -12,9 +13,11 @@ module.exports = class ClassroomManager {
         this.httpExposed = [
             'post=createClassroom',
             'get=listClassrooms',
+            'get=listDeletedClassrooms',
             'get=getClassroom',
             'post=updateClassroom',
-            'post=deleteClassroom'
+            'post=deleteClassroom',
+            'post=permanentlyDeleteClassroom'
         ];
     }
 
@@ -79,10 +82,7 @@ module.exports = class ClassroomManager {
             );
             const skip = (page - 1) * limit;
 
-            const filter = { school: targetSchoolId };
-            if (__query.status) {
-                filter.status = __query.status;
-            }
+            const filter = { school: targetSchoolId, status: CONSTANTS.CLASSROOM_STATUS.ACTIVE };
             if (__query.gradeLevel) {
                 filter.gradeLevel = __query.gradeLevel;
             }
@@ -112,6 +112,55 @@ module.exports = class ClassroomManager {
         }
     }
 
+    async listDeletedClassrooms({ __token, __role, __schoolScope, __params, __query, schoolId }) {
+        try {
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
+
+            const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
+            const limit = Math.min(
+                parseInt(__query.limit) || CONSTANTS.PAGINATION.DEFAULT_LIMIT,
+                CONSTANTS.PAGINATION.MAX_LIMIT
+            );
+            const skip = (page - 1) * limit;
+
+            const filter = { school: targetSchoolId, status: CONSTANTS.CLASSROOM_STATUS.INACTIVE };
+            if (__query.gradeLevel) {
+                filter.gradeLevel = __query.gradeLevel;
+            }
+
+            const [classrooms, total] = await Promise.all([
+                Classroom.find(filter)
+                    .skip(skip)
+                    .limit(limit)
+                    .sort({ updatedAt: -1 })
+                    .lean(),
+                Classroom.countDocuments(filter)
+            ]);
+
+            return {
+                classrooms,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+
+        } catch (error) {
+            console.error('List deleted classrooms error:', error);
+            return { errors: ['Failed to fetch deleted classrooms'] };
+        }
+    }
+
     async getClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, classroomId }) {
         try {
             const targetClassroomId = classroomId || (__params && (__params.classroomId || __params.id)) || (__query && (__query.classroomId || __query.id));
@@ -131,7 +180,8 @@ module.exports = class ClassroomManager {
 
             const classroom = await Classroom.findOne({
                 _id: targetClassroomId,
-                school: targetSchoolId
+                school: targetSchoolId,
+                status: CONSTANTS.CLASSROOM_STATUS.ACTIVE
             }).lean();
 
             if (!classroom) {
@@ -224,6 +274,55 @@ module.exports = class ClassroomManager {
         } catch (error) {
             console.error('Delete classroom error:', error);
             return { errors: ['Failed to delete classroom'] };
+        }
+    }
+
+    async permanentlyDeleteClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, classroomId }) {
+        try {
+            const targetClassroomId = classroomId || (__params && (__params.classroomId || __params.id)) || (__query && (__query.classroomId || __query.id));
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
+
+            if (!targetClassroomId) {
+                return { errors: ['Classroom ID is required'] };
+            }
+
+            const classroom = await Classroom.findOne({
+                _id: targetClassroomId,
+                school: targetSchoolId
+            });
+
+            if (!classroom) {
+                return { errors: ['Classroom not found or access denied'] };
+            }
+
+            if (classroom.status !== CONSTANTS.CLASSROOM_STATUS.INACTIVE) {
+                return { errors: ['Classroom has not been deleted. Soft delete it first before permanent deletion.'] };
+            }
+
+            const linkedStudents = await Student.countDocuments({
+                classroom: targetClassroomId,
+                status: { $ne: CONSTANTS.STUDENT_STATUS.WITHDRAWN },
+            });
+
+            if (linkedStudents > 0) {
+                return { errors: [`Cannot permanently delete classroom with linked students (${linkedStudents}).`] };
+            }
+
+            await Classroom.deleteOne({ _id: targetClassroomId, school: targetSchoolId });
+
+            return { message: 'Classroom permanently deleted from recycle bin' };
+
+        } catch (error) {
+            console.error('Permanent delete classroom error:', error);
+            return { errors: ['Failed to permanently delete classroom'] };
         }
     }
 };
