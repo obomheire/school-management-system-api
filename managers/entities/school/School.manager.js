@@ -395,10 +395,19 @@ module.exports = class SchoolManager {
     /**
      * Assign administrator to school
      */
-    async assignAdministrator({ __token, __role, __params, __query, schoolId, adminId }) {
+    async assignAdministrator({ __superadmin, __token, __role, __params, __query, schoolId, adminId }) {
         try {
             const accessError = this._requireSuperadmin(__role);
             if (accessError) return accessError;
+
+            // Defense in depth: enforce superadmin role from persisted user record.
+            if (!__token || !__token.userId) {
+                return { errors: ['Authentication required'] };
+            }
+            const actor = await User.findById(__token.userId).select('role status').lean();
+            if (!actor || actor.status !== CONSTANTS.USER_STATUS.ACTIVE || actor.role !== CONSTANTS.ROLES.SUPERADMIN) {
+                return { errors: ['Access denied. Superadmin role required'] };
+            }
 
             const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
 
