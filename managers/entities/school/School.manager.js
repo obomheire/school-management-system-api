@@ -112,24 +112,27 @@ module.exports = class SchoolManager {
             const skip = (page - 1) * limit;
 
             if (rbacHelper.isSchoolAdmin(actor.role)) {
-                if (!actor.assignedSchool) {
-                    return { errors: ['No school assigned to this administrator'] };
-                }
-
-                const school = await School.findOne({
-                    _id: actor.assignedSchool,
+                const adminFilter = {
                     status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
                     administrators: actor._id,
-                }).lean();
-                const schools = school && school.status === CONSTANTS.SCHOOL_STATUS.ACTIVE ? [school] : [];
+                };
+
+                const [schools, total] = await Promise.all([
+                    School.find(adminFilter)
+                        .skip(skip)
+                        .limit(limit)
+                        .sort({ createdAt: -1 })
+                        .lean(),
+                    School.countDocuments(adminFilter),
+                ]);
 
                 return {
                     schools,
                     pagination: {
-                        page: 1,
-                        limit: 1,
-                        total: schools.length,
-                        pages: schools.length ? 1 : 0
+                        page,
+                        limit,
+                        total,
+                        pages: Math.ceil(total / limit)
                     }
                 };
             }
