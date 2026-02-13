@@ -18,6 +18,10 @@ const OYSTER_PREFIX                    = process.env.OYSTER_PREFIX || 'none';
 
 const CACHE_REDIS                      = process.env.CACHE_REDIS || REDIS_URI;
 const CACHE_PREFIX                     = process.env.CACHE_PREFIX || `${SERVICE_NAME}:ch`;
+const CORS_ORIGIN                      = process.env.CORS_ORIGIN || '*';
+const RATE_LIMIT_WINDOW_MS             = process.env.RATE_LIMIT_WINDOW_MS || '900000';
+const RATE_LIMIT_MAX_REQUESTS          = process.env.RATE_LIMIT_MAX_REQUESTS || '100';
+const RATE_LIMIT_AUTH_MAX_REQUESTS     = process.env.RATE_LIMIT_AUTH_MAX_REQUESTS || '20';
 
 const MONGO_URI                        = process.env.MONGO_URI || `mongodb://localhost:27017/${SERVICE_NAME}`;
 const config                           = require(`./envs/${ENV}.js`);
@@ -39,6 +43,10 @@ config.dotEnv = {
     OYSTER_PREFIX,
     CACHE_REDIS,
     CACHE_PREFIX,
+    CORS_ORIGIN,
+    RATE_LIMIT_WINDOW_MS,
+    RATE_LIMIT_MAX_REQUESTS,
+    RATE_LIMIT_AUTH_MAX_REQUESTS,
     MONGO_URI,
     USER_PORT,
     ADMIN_PORT,
