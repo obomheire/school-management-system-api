@@ -150,9 +150,9 @@ module.exports = class StudentManager {
         }
     }
 
-    async getStudent({ __token, __role, __schoolScope, __params, __query, schoolId }) {
+    async getStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId }) {
         try {
-            const studentId = __params.studentId || __params.id;
+            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -163,12 +163,12 @@ module.exports = class StudentManager {
             if (access.error) return { errors: [access.error] };
             const targetSchoolId = access.schoolId;
 
-            if (!studentId) {
+            if (!targetStudentId) {
                 return { errors: ['Student ID is required'] };
             }
 
             const student = await Student.findOne({
-                _id: studentId,
+                _id: targetStudentId,
                 school: targetSchoolId
             })
                 .populate('school', 'name address contactInfo')
@@ -187,9 +187,9 @@ module.exports = class StudentManager {
         }
     }
 
-    async updateStudent({ __token, __role, __schoolScope, __params, __query, schoolId, firstName, lastName, guardianInfo, status }) {
+    async updateStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId, firstName, lastName, guardianInfo, status }) {
         try {
-            const studentId = __params.studentId || __params.id;
+            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -200,12 +200,12 @@ module.exports = class StudentManager {
             if (access.error) return { errors: [access.error] };
             const targetSchoolId = access.schoolId;
 
-            if (!studentId) {
+            if (!targetStudentId) {
                 return { errors: ['Student ID is required'] };
             }
 
             const student = await Student.findOne({
-                _id: studentId,
+                _id: targetStudentId,
                 school: targetSchoolId
             });
 
@@ -228,12 +228,12 @@ module.exports = class StudentManager {
         }
     }
 
-    async deleteStudent({ __token, __role, __schoolScope, __params, __query, schoolId }) {
+    async deleteStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId }) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            const studentId = __params.studentId || __params.id;
+            const targetStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -247,13 +247,13 @@ module.exports = class StudentManager {
             }
             const targetSchoolId = access.schoolId;
 
-            if (!studentId) {
+            if (!targetStudentId) {
                 await session.abortTransaction();
                 return { errors: ['Student ID is required'] };
             }
 
             const student = await Student.findOne({
-                _id: studentId,
+                _id: targetStudentId,
                 school: targetSchoolId
             }).session(session);
 
@@ -285,12 +285,12 @@ module.exports = class StudentManager {
         }
     }
 
-    async transferStudent({ __token, __role, __schoolScope, __params, __query, schoolId, targetSchoolId, targetClassroomId, reason }) {
+    async transferStudent({ __token, __role, __schoolScope, __params, __query, schoolId, studentId, targetSchoolId, targetClassroomId, reason }) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            const studentId = __params.studentId || __params.id;
+            const sourceStudentId = studentId || (__params && (__params.studentId || __params.id)) || (__query && (__query.studentId || __query.id));
             const access = schoolAccessGuard.resolveManagedSchoolId({
                 __role,
                 __params,
@@ -304,7 +304,7 @@ module.exports = class StudentManager {
             }
             const currentSchoolId = access.schoolId;
 
-            if (!studentId || !targetSchoolId || !targetClassroomId) {
+            if (!sourceStudentId || !targetSchoolId || !targetClassroomId) {
                 await session.abortTransaction();
                 return { errors: ['Student ID, target school ID, and target classroom ID are required'] };
             }
@@ -316,7 +316,7 @@ module.exports = class StudentManager {
 
             // Fetch student
             const student = await Student.findOne({
-                _id: studentId,
+                _id: sourceStudentId,
                 school: currentSchoolId
             }).session(session);
 
