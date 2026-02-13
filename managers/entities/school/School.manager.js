@@ -42,7 +42,11 @@ module.exports = class SchoolManager {
             await school.save();
 
             // Cache the school
-            await this.cache.key.set(`school:${school._id}`, JSON.stringify(school), 3600);
+            await this.cache.key.set({
+                key: `school:${school._id}`,
+                data: JSON.stringify(school),
+                ttl: 3600,
+            });
 
             return { school };
 
@@ -106,7 +110,7 @@ module.exports = class SchoolManager {
             }
 
             // Try to get from cache first
-            const cached = await this.cache.key.get(`school:${schoolId}`);
+            const cached = await this.cache.key.get({ key: `school:${schoolId}` });
             if (cached) {
                 return { school: JSON.parse(cached) };
             }
@@ -120,7 +124,11 @@ module.exports = class SchoolManager {
             }
 
             // Cache the result
-            await this.cache.key.set(`school:${schoolId}`, JSON.stringify(school), 3600);
+            await this.cache.key.set({
+                key: `school:${schoolId}`,
+                data: JSON.stringify(school),
+                ttl: 3600,
+            });
 
             return { school };
 
@@ -157,7 +165,7 @@ module.exports = class SchoolManager {
             await school.save();
 
             // Invalidate cache
-            await this.cache.key.del(`school:${schoolId}`);
+            await this.cache.key.delete({ key: `school:${schoolId}` });
 
             return { school };
 
@@ -189,7 +197,7 @@ module.exports = class SchoolManager {
             await school.save();
 
             // Invalidate cache
-            await this.cache.key.del(`school:${schoolId}`);
+            await this.cache.key.delete({ key: `school:${schoolId}` });
 
             return { message: 'School deleted successfully' };
 
@@ -233,7 +241,7 @@ module.exports = class SchoolManager {
             await school.addAdministrator(adminId);
 
             // Invalidate cache
-            await this.cache.key.del(`school:${schoolId}`);
+            await this.cache.key.delete({ key: `school:${schoolId}` });
 
             return { message: 'Administrator assigned successfully', school };
 
