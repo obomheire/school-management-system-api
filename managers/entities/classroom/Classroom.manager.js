@@ -146,7 +146,7 @@ module.exports = class ClassroomManager {
         }
     }
 
-    async updateClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, classroomId, name, capacity, resources, status }) {
+    async updateClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, classroomId, name, roomNumber, gradeLevel, capacity, resources, status }) {
         try {
             const targetClassroomId = classroomId || (__params && (__params.classroomId || __params.id)) || (__query && (__query.classroomId || __query.id));
             const access = schoolAccessGuard.resolveManagedSchoolId({
@@ -173,6 +173,8 @@ module.exports = class ClassroomManager {
             }
 
             if (name) classroom.name = name;
+            if (roomNumber) classroom.roomNumber = roomNumber;
+            if (gradeLevel) classroom.gradeLevel = gradeLevel;
             if (capacity) classroom.capacity = capacity;
             if (resources) classroom.resources = resources;
             if (status) classroom.status = status;
