@@ -92,7 +92,7 @@ POST /api/student/enrollStudent
 GET  /api/student/listStudents?schoolId=<id>&page=1
 GET  /api/student/getStudent?schoolId=<id>&studentId=<id>
 POST /api/student/updateStudent?schoolId=<id>&studentId=<id>
-POST /api/student/deleteStudent?schoolId=<id>&studentId=<id>
+POST /api/student/withdrawnStudent?schoolId=<id>&studentId=<id>
 POST /api/student/transferStudent?schoolId=<id>&studentId=<id>
 ```
 
