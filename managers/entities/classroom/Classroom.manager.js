@@ -1,6 +1,7 @@
 const Classroom = require('./classroom.mongoModel');
 const School = require('../school/school.mongoModel');
 const CONSTANTS = require('../../_common/constants');
+const schoolAccessGuard = require('../../_common/schoolAccess.guard');
 
 module.exports = class ClassroomManager {
     constructor({ config, managers, validators }) {
@@ -17,13 +18,20 @@ module.exports = class ClassroomManager {
         ];
     }
 
-    async createClassroom({ __token, __schoolScope, name, roomNumber, gradeLevel, capacity, resources }) {
+    async createClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, name, roomNumber, gradeLevel, capacity, resources }) {
         try {
-            // Use schoolId from middleware (enforces RBAC)
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             // Verify school exists
-            const school = await School.findById(schoolId);
+            const school = await School.findById(targetSchoolId);
             if (!school) {
                 return { errors: ['School not found'] };
             }
@@ -32,7 +40,7 @@ module.exports = class ClassroomManager {
             const classroom = new Classroom({
                 name,
                 roomNumber,
-                school: schoolId,
+                school: targetSchoolId,
                 gradeLevel,
                 capacity,
                 resources: resources || [],
@@ -52,9 +60,17 @@ module.exports = class ClassroomManager {
         }
     }
 
-    async listClassrooms({ __token, __schoolScope, __query }) {
+    async listClassrooms({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         try {
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
             const limit = Math.min(
@@ -63,7 +79,7 @@ module.exports = class ClassroomManager {
             );
             const skip = (page - 1) * limit;
 
-            const filter = { school: schoolId };
+            const filter = { school: targetSchoolId };
             if (__query.status) {
                 filter.status = __query.status;
             }
@@ -96,10 +112,18 @@ module.exports = class ClassroomManager {
         }
     }
 
-    async getClassroom({ __token, __schoolScope, __params }) {
+    async getClassroom({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         try {
             const classroomId = __params.classroomId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             if (!classroomId) {
                 return { errors: ['Classroom ID is required'] };
@@ -107,7 +131,7 @@ module.exports = class ClassroomManager {
 
             const classroom = await Classroom.findOne({
                 _id: classroomId,
-                school: schoolId
+                school: targetSchoolId
             }).lean();
 
             if (!classroom) {
@@ -122,10 +146,18 @@ module.exports = class ClassroomManager {
         }
     }
 
-    async updateClassroom({ __token, __schoolScope, __params, name, capacity, resources, status }) {
+    async updateClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, name, capacity, resources, status }) {
         try {
             const classroomId = __params.classroomId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             if (!classroomId) {
                 return { errors: ['Classroom ID is required'] };
@@ -133,7 +165,7 @@ module.exports = class ClassroomManager {
 
             const classroom = await Classroom.findOne({
                 _id: classroomId,
-                school: schoolId
+                school: targetSchoolId
             });
 
             if (!classroom) {
@@ -155,10 +187,18 @@ module.exports = class ClassroomManager {
         }
     }
 
-    async deleteClassroom({ __token, __schoolScope, __params }) {
+    async deleteClassroom({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         try {
             const classroomId = __params.classroomId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             if (!classroomId) {
                 return { errors: ['Classroom ID is required'] };
@@ -166,7 +206,7 @@ module.exports = class ClassroomManager {
 
             const classroom = await Classroom.findOne({
                 _id: classroomId,
-                school: schoolId
+                school: targetSchoolId
             });
 
             if (!classroom) {

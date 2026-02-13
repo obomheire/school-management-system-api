@@ -3,6 +3,7 @@ const Student = require('./student.mongoModel');
 const Classroom = require('../classroom/classroom.mongoModel');
 const School = require('../school/school.mongoModel');
 const CONSTANTS = require('../../_common/constants');
+const schoolAccessGuard = require('../../_common/schoolAccess.guard');
 
 module.exports = class StudentManager {
     constructor({ config, managers, validators }) {
@@ -20,17 +21,28 @@ module.exports = class StudentManager {
         ];
     }
 
-    async enrollStudent({ __token, __schoolScope, firstName, lastName, dateOfBirth, studentId, classroomId, guardianInfo }) {
+    async enrollStudent({ __token, __role, __schoolScope, __params, __query, schoolId, firstName, lastName, dateOfBirth, studentId, classroomId, guardianInfo }) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) {
+                await session.abortTransaction();
+                return { errors: [access.error] };
+            }
+            const targetSchoolId = access.schoolId;
 
             // Verify classroom belongs to this school
             const classroom = await Classroom.findOne({
                 _id: classroomId,
-                school: schoolId
+                school: targetSchoolId
             }).session(session);
 
             if (!classroom) {
@@ -57,7 +69,7 @@ module.exports = class StudentManager {
                 lastName,
                 dateOfBirth,
                 studentId,
-                school: schoolId,
+                school: targetSchoolId,
                 classroom: classroomId,
                 guardianInfo,
                 enrollmentDate: new Date(),
@@ -85,9 +97,17 @@ module.exports = class StudentManager {
         }
     }
 
-    async listStudents({ __token, __schoolScope, __query }) {
+    async listStudents({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         try {
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
             const limit = Math.min(
@@ -96,7 +116,7 @@ module.exports = class StudentManager {
             );
             const skip = (page - 1) * limit;
 
-            const filter = { school: schoolId };
+            const filter = { school: targetSchoolId };
             if (__query.status) {
                 filter.status = __query.status;
             }
@@ -130,10 +150,18 @@ module.exports = class StudentManager {
         }
     }
 
-    async getStudent({ __token, __schoolScope, __params }) {
+    async getStudent({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         try {
             const studentId = __params.studentId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             if (!studentId) {
                 return { errors: ['Student ID is required'] };
@@ -141,7 +169,7 @@ module.exports = class StudentManager {
 
             const student = await Student.findOne({
                 _id: studentId,
-                school: schoolId
+                school: targetSchoolId
             })
                 .populate('school', 'name address contactInfo')
                 .populate('classroom', 'name roomNumber gradeLevel capacity')
@@ -159,10 +187,18 @@ module.exports = class StudentManager {
         }
     }
 
-    async updateStudent({ __token, __schoolScope, __params, firstName, lastName, guardianInfo, status }) {
+    async updateStudent({ __token, __role, __schoolScope, __params, __query, schoolId, firstName, lastName, guardianInfo, status }) {
         try {
             const studentId = __params.studentId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
 
             if (!studentId) {
                 return { errors: ['Student ID is required'] };
@@ -170,7 +206,7 @@ module.exports = class StudentManager {
 
             const student = await Student.findOne({
                 _id: studentId,
-                school: schoolId
+                school: targetSchoolId
             });
 
             if (!student) {
@@ -192,13 +228,24 @@ module.exports = class StudentManager {
         }
     }
 
-    async deleteStudent({ __token, __schoolScope, __params }) {
+    async deleteStudent({ __token, __role, __schoolScope, __params, __query, schoolId }) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
             const studentId = __params.studentId || __params.id;
-            const schoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) {
+                await session.abortTransaction();
+                return { errors: [access.error] };
+            }
+            const targetSchoolId = access.schoolId;
 
             if (!studentId) {
                 await session.abortTransaction();
@@ -207,7 +254,7 @@ module.exports = class StudentManager {
 
             const student = await Student.findOne({
                 _id: studentId,
-                school: schoolId
+                school: targetSchoolId
             }).session(session);
 
             if (!student) {
@@ -238,17 +285,33 @@ module.exports = class StudentManager {
         }
     }
 
-    async transferStudent({ __token, __schoolScope, __params, targetSchoolId, targetClassroomId, reason }) {
+    async transferStudent({ __token, __role, __schoolScope, __params, __query, schoolId, targetSchoolId, targetClassroomId, reason }) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
             const studentId = __params.studentId || __params.id;
-            const currentSchoolId = __schoolScope.schoolId;
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) {
+                await session.abortTransaction();
+                return { errors: [access.error] };
+            }
+            const currentSchoolId = access.schoolId;
 
             if (!studentId || !targetSchoolId || !targetClassroomId) {
                 await session.abortTransaction();
                 return { errors: ['Student ID, target school ID, and target classroom ID are required'] };
+            }
+
+            if (__role && __role.role === CONSTANTS.ROLES.SCHOOL_ADMIN && targetSchoolId !== currentSchoolId) {
+                await session.abortTransaction();
+                return { errors: ['Access denied. You can only transfer students within your assigned school.'] };
             }
 
             // Fetch student

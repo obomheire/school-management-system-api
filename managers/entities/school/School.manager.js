@@ -1,5 +1,7 @@
 const School = require('./school.mongoModel');
 const User = require('../user/user.mongoModel');
+const Classroom = require('../classroom/classroom.mongoModel');
+const Student = require('../student/student.mongoModel');
 const CONSTANTS = require('../../_common/constants');
 const rbacHelper = require('../../_common/rbac.helper');
 
@@ -13,9 +15,11 @@ module.exports = class SchoolManager {
         this.httpExposed = [
             'post=createSchool',
             'get=listSchools',
+            'get=listDeletedSchools',
             'get=getSchool',
             'post=updateSchool',
             'post=deleteSchool',
+            'post=permanentlyDeleteSchool',
             'post=assignAdministrator'
         ];
     }
@@ -106,8 +110,7 @@ module.exports = class SchoolManager {
                 }
 
                 const school = await School.findById(__role.assignedSchool).lean();
-                const matchesStatus = !__query.status || (school && school.status === __query.status);
-                const schools = school && matchesStatus ? [school] : [];
+                const schools = school && school.status === CONSTANTS.SCHOOL_STATUS.ACTIVE ? [school] : [];
 
                 return {
                     schools,
@@ -124,10 +127,7 @@ module.exports = class SchoolManager {
                 return { errors: ['Access denied'] };
             }
 
-            const filter = {};
-            if (__query.status) {
-                filter.status = __query.status;
-            }
+            const filter = { status: CONSTANTS.SCHOOL_STATUS.ACTIVE };
 
             const [schools, total] = await Promise.all([
                 School.find(filter)
@@ -151,6 +151,48 @@ module.exports = class SchoolManager {
         } catch (error) {
             console.error('List schools error:', error);
             return { errors: ['Failed to fetch schools'] };
+        }
+    }
+
+    /**
+     * List deleted schools in recycle bin (Superadmin only)
+     */
+    async listDeletedSchools({ __token, __role, __query }) {
+        try {
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
+
+            const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
+            const limit = Math.min(
+                parseInt(__query.limit) || CONSTANTS.PAGINATION.DEFAULT_LIMIT,
+                CONSTANTS.PAGINATION.MAX_LIMIT
+            );
+            const skip = (page - 1) * limit;
+
+            const filter = { status: CONSTANTS.SCHOOL_STATUS.INACTIVE };
+
+            const [schools, total] = await Promise.all([
+                School.find(filter)
+                    .skip(skip)
+                    .limit(limit)
+                    .sort({ updatedAt: -1 })
+                    .lean(),
+                School.countDocuments(filter)
+            ]);
+
+            return {
+                schools,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+
+        } catch (error) {
+            console.error('List deleted schools error:', error);
+            return { errors: ['Failed to fetch deleted schools'] };
         }
     }
 
@@ -184,10 +226,13 @@ module.exports = class SchoolManager {
             // Try to get from cache first
             const cached = await this.cache.key.get({ key: `school:${targetSchoolId}` });
             if (cached) {
-                return { school: JSON.parse(cached) };
+                const cachedSchool = JSON.parse(cached);
+                if (cachedSchool.status === CONSTANTS.SCHOOL_STATUS.ACTIVE) {
+                    return { school: cachedSchool };
+                }
             }
 
-            const school = await School.findById(targetSchoolId)
+            const school = await School.findOne({ _id: targetSchoolId, status: CONSTANTS.SCHOOL_STATUS.ACTIVE })
                 .populate('administrators', 'username email role')
                 .lean();
 
@@ -295,6 +340,55 @@ module.exports = class SchoolManager {
         } catch (error) {
             console.error('Delete school error:', error);
             return { errors: ['Failed to delete school'] };
+        }
+    }
+
+    /**
+     * Permanently delete school from recycle bin (inactive schools only)
+     */
+    async permanentlyDeleteSchool({ __token, __role, __params, __query, schoolId }) {
+        try {
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
+
+            const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+
+            if (!targetSchoolId) {
+                return { errors: ['School ID is required'] };
+            }
+
+            const school = await School.findById(targetSchoolId);
+
+            if (!school) {
+                return { errors: ['School not found'] };
+            }
+
+            if (school.status !== CONSTANTS.SCHOOL_STATUS.INACTIVE) {
+                return { errors: ['School has not been deleted. Soft delete it first before permanent deletion.'] };
+            }
+
+            const [assignedAdminCount, classroomCount, studentCount] = await Promise.all([
+                User.countDocuments({ assignedSchool: targetSchoolId, role: CONSTANTS.ROLES.SCHOOL_ADMIN }),
+                Classroom.countDocuments({ school: targetSchoolId }),
+                Student.countDocuments({ school: targetSchoolId }),
+            ]);
+
+            if (assignedAdminCount > 0 || classroomCount > 0 || studentCount > 0) {
+                return {
+                    errors: [
+                        `Cannot permanently delete school with linked records (admins: ${assignedAdminCount}, classrooms: ${classroomCount}, students: ${studentCount}). Clean up dependencies first.`,
+                    ],
+                };
+            }
+
+            await School.deleteOne({ _id: targetSchoolId });
+            await this.cache.key.delete({ key: `school:${targetSchoolId}` });
+
+            return { message: 'School permanently deleted from recycle bin' };
+
+        } catch (error) {
+            console.error('Permanent delete school error:', error);
+            return { errors: ['Failed to permanently delete school'] };
         }
     }
 
