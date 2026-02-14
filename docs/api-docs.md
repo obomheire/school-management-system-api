@@ -23,6 +23,86 @@ The system uses a dual-token system:
 - **Long Token**: Valid for 3 years, used only to generate short tokens. Long tokens CANNOT be used to authenticate API requests.
 - **Short Token**: Valid for 1 year, used for authenticating API requests
 
+## Error Handling
+The API uses conventional HTTP response codes to indicate success or failure of requests. In general:
+- Codes in the 2xx range indicate success
+- Codes in the 4xx range indicate an error that failed given the information provided
+- Codes in the 5xx range indicate an error with the server
+
+### Common Error Response Format
+All error responses follow this format:
+```json
+{
+  "errors": ["Error message 1", "Error message 2"]
+}
+```
+
+### HTTP Status Codes
+- `200 OK`: Request succeeded
+- `201 Created`: Request succeeded and a resource was created
+- `400 Bad Request`: Request failed due to invalid input data
+- `401 Unauthorized`: Authentication failed or user doesn't have permissions
+- `403 Forbidden`: Access denied due to insufficient permissions
+- `404 Not Found`: Requested resource doesn't exist
+- `409 Conflict`: Request conflicts with current state of the server (e.g., duplicate entry)
+- `422 Unprocessable Entity`: Request validation failed
+- `500 Internal Server Error`: An unexpected server error occurred
+
+### Common Error Messages
+- `"Authentication required"`: Missing or invalid authorization header
+- `"Access denied"`: Insufficient permissions to perform the action
+- `"Access denied. Superadmin role required"`: Action requires superadmin privileges
+- `"invalid"`: Invalid token provided
+- `"missing token"`: Authorization token is missing from the request
+- `"unauthorized"`: Invalid or expired token provided
+- `"Email already registered"`: Email address is already in use
+- `"Username already taken"`: Username is already in use
+- `"Invalid email or password"`: Login credentials are incorrect
+- `"Account is inactive or suspended"`: User account is not active
+- `"School with this name already exists"`: Duplicate school name detected
+- `"School not found"`: Requested school does not exist
+- `"School is not in recycle bin"`: Attempt to restore an active school
+- `"School has not been deleted. Soft delete it first before permanent deletion."`: Attempt to permanently delete an active school
+- `"Cannot permanently delete school with linked records"`: Dependencies prevent permanent deletion
+- `"Administrator not found"`: Referenced administrator does not exist
+- `"User must have school_admin role"`: User role is not appropriate for the action
+- `"Student not found"`: Requested student does not exist
+- `"Classroom not found"`: Requested classroom does not exist
+- `"Invalid role"`: Provided role is not valid
+- `"School Admin must be assigned to a school"`: School admin needs to be assigned to a school
+- `"Assigned school not found"`: Referenced school for assignment does not exist
+- `"Assigned school is not active"`: Referenced school is inactive
+- `"No school assigned to this administrator"`: Administrator has no assigned school
+- `"Access denied. You can only access your assigned school."`: Administrator tried to access unauthorized school
+- `"Access denied. You can only manage your assigned school."`: Administrator tried to manage unauthorized school
+- `"School ID is required"`: Missing required school ID parameter
+- `"School ID and Admin ID are required"`: Missing required IDs for assignment
+- `"Registration failed. Please try again."`: Generic registration error
+- `"Login failed. Please try again."`: Generic login error
+- `"Failed to create school"`: Generic school creation error
+- `"Failed to fetch schools"`: Generic school listing error
+- `"Failed to fetch deleted schools"`: Generic deleted school listing error
+- `"Failed to fetch school"`: Generic school retrieval error
+- `"Failed to update school"`: Generic school update error
+- `"Failed to delete school"`: Generic school deletion error
+- `"Failed to restore school"`: Generic school restoration error
+- `"Failed to permanently delete school"`: Generic permanent school deletion error
+- `"Failed to assign administrator"`: Generic administrator assignment error
+- `"Failed to enroll student"`: Generic student enrollment error
+- `"Failed to fetch students"`: Generic student listing error
+- `"Failed to fetch student"`: Generic student retrieval error
+- `"Failed to update student"`: Generic student update error
+- `"Failed to withdraw student"`: Generic student withdrawal error
+- `"Failed to restore student"`: Generic student restoration error
+- `"Failed to transfer student"`: Generic student transfer error
+- `"Failed to create classroom"`: Generic classroom creation error
+- `"Failed to fetch classrooms"`: Generic classroom listing error
+- `"Failed to fetch classroom"`: Generic classroom retrieval error
+- `"Failed to update classroom"`: Generic classroom update error
+- `"Failed to delete classroom"`: Generic classroom deletion error
+- `"Failed to restore classroom"`: Generic classroom restoration error
+- `"Failed to permanently delete classroom"`: Generic permanent classroom deletion error
+
 ---
 
 ## Authentication
