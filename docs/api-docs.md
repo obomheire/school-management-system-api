@@ -15,13 +15,13 @@ https://your-domain.com/api
 Most API endpoints require authentication. Include the following header in your requests:
 
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 ## Token Management
 The system uses a dual-token system:
-- **Long Token**: Valid for 3 years, used for authentication
-- **Short Token**: Valid for 1 year, generated from long token
+- **Long Token**: Valid for 3 years, used only to generate short tokens. Long tokens CANNOT be used to authenticate API requests.
+- **Short Token**: Valid for 1 year, used for authenticating API requests
 
 ---
 
@@ -142,6 +142,8 @@ curl -X POST https://your-domain.com/api/token/v1_createShortToken \
   -H "Authorization: Bearer YOUR_LONG_TOKEN"
 ```
 
+**Note**: This is the only endpoint that accepts a long token. All other authenticated endpoints require a short token.
+
 #### Response
 ```json
 {
@@ -161,13 +163,13 @@ GET /auth/getProfile
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Example Request
 ```bash
 curl -X GET https://your-domain.com/api/auth/getProfile \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -214,7 +216,7 @@ POST /school/createSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Request Body
@@ -242,7 +244,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X POST https://your-domain.com/api/school/createSchool \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "name": "Greenwood High School",
     "address": {
@@ -303,7 +305,7 @@ GET /school/listSchools
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -313,7 +315,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/school/listSchools?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -368,7 +370,7 @@ GET /school/getSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -377,7 +379,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/school/getSchool?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -427,7 +429,7 @@ PUT /school/updateSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -459,7 +461,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X PUT "https://your-domain.com/api/school/updateSchool?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "name": "Updated Greenwood High School",
     "contactInfo": {
@@ -515,7 +517,7 @@ PUT /school/assignAdministrator
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -525,7 +527,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X PUT "https://your-domain.com/api/school/assignAdministrator?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e&adminId=5f8b8c9a7d6e5f4a3b2c1d0f" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -559,7 +561,7 @@ DELETE /school/deleteSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -568,7 +570,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X DELETE "https://your-domain.com/api/school/deleteSchool?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -590,7 +592,7 @@ PUT /school/restoreSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -599,7 +601,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X PUT "https://your-domain.com/api/school/restoreSchool?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -626,7 +628,7 @@ GET /school/listDeletedSchools
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -636,7 +638,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/school/listDeletedSchools?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -683,7 +685,7 @@ DELETE /school/permanentlyDeleteSchool
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -692,7 +694,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X DELETE "https://your-domain.com/api/school/permanentlyDeleteSchool?schoolId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -716,7 +718,7 @@ POST /classroom/createClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Request Body
@@ -734,7 +736,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X POST https://your-domain.com/api/classroom/createClassroom \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "name": "Mathematics Room",
     "roomNumber": "M-101",
@@ -774,7 +776,7 @@ GET /classroom/listClassrooms
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -785,7 +787,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/classroom/listClassrooms?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -826,7 +828,7 @@ GET /classroom/getClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -835,7 +837,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/classroom/getClassroom?classroomId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -871,7 +873,7 @@ PUT /classroom/updateClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -891,7 +893,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X PUT "https://your-domain.com/api/classroom/updateClassroom?classroomId=5f8b8c9a7d6e5f4a3b2c1d0e" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "name": "Advanced Mathematics Room",
     "capacity": 35
@@ -928,7 +930,7 @@ DELETE /classroom/deleteClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -937,7 +939,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X DELETE "https://your-domain.com/api/classroom/deleteClassroom?classroomId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -959,7 +961,7 @@ PUT /classroom/restoreClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -968,7 +970,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X PUT "https://your-domain.com/api/classroom/restoreClassroom?classroomId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -995,7 +997,7 @@ GET /classroom/listDeletedClassrooms
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1005,7 +1007,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/classroom/listDeletedClassrooms?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1046,7 +1048,7 @@ DELETE /classroom/permanentlyDeleteClassroom
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1055,7 +1057,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X DELETE "https://your-domain.com/api/classroom/permanentlyDeleteClassroom?classroomId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1079,7 +1081,7 @@ POST /student/enrollStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Request Body
@@ -1103,7 +1105,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X POST https://your-domain.com/api/student/enrollStudent \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "firstName": "John",
     "lastName": "Doe",
@@ -1156,7 +1158,7 @@ GET /student/listStudents
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1168,7 +1170,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/student/listStudents?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1222,7 +1224,7 @@ GET /student/getStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1231,7 +1233,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/student/getStudent?studentId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1277,7 +1279,7 @@ PUT /student/updateStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1302,7 +1304,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X PUT "https://your-domain.com/api/student/updateStudent?studentId=5f8b8c9a7d6e5f4a3b2c1d0e" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "firstName": "Johnny",
     "guardianInfo": {
@@ -1348,7 +1350,7 @@ DELETE /student/withdrawnStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1357,7 +1359,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X DELETE "https://your-domain.com/api/student/withdrawnStudent?studentId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1379,7 +1381,7 @@ PUT /student/restoreStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1388,7 +1390,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X PUT "https://your-domain.com/api/student/restoreStudent?studentId=5f8b8c9a7d6e5f4a3b2c1d0e" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1416,7 +1418,7 @@ GET /student/listWithdrawnStudents
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1426,7 +1428,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 #### Example Request
 ```bash
 curl -X GET "https://your-domain.com/api/student/listWithdrawnStudents?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN"
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN"
 ```
 
 #### Response
@@ -1480,7 +1482,7 @@ PUT /student/transferStudent
 
 #### Headers
 ```bash
-Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
+Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
 #### Query Parameters
@@ -1499,7 +1501,7 @@ Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN
 ```bash
 curl -X PUT "https://your-domain.com/api/student/transferStudent?studentId=5f8b8c9a7d6e5f4a3b2c1d0e" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_LONG_OR_SHORT_TOKEN" \
+  -H "Authorization: Bearer YOUR_SHORT_TOKEN" \
   -d '{
     "targetSchoolId": "5f8b8c9a7d6e5f4a3b2c1d0f",
     "targetClassroomId": "5f8b8c9a7d6e5f4a3b2c1d1g",
