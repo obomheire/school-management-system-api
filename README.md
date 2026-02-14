@@ -6,6 +6,7 @@ A comprehensive school management system API built with Node.js, Express, and Mo
 
 - API documentation is available in [`docs/api-docs.md`](docs/api-docs.md)
 - Architectural design and database design (with diagrams) are available in [`docs/architectural-designs.md`](docs/architectural-designs.md)
+- Seeded test users/data reference is available in [`docs/test-data.md`](docs/test-data.md)
 
 ## Prerequisites
 
@@ -126,6 +127,16 @@ node index.js
 The application will start and listen on the ports specified in your `.env` file:
 - User API: `http://localhost:5111`
 - Admin API: `http://localhost:5222`
+
+### 7. Seed Test Data
+
+To seed test data for local API testing:
+
+```bash
+npm run seed
+```
+
+Seed output details and credentials are documented in [`docs/test-data.md`](docs/test-data.md).
 
 ## Project Structure
 

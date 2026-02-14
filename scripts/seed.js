@@ -1,259 +1,311 @@
 /**
  * Database Seed Script for School Management System
- * Creates initial data: Superadmin, Schools, School Admins, Classrooms, and Students
+ *
+ * Seeds:
+ * - 2 superadmins
+ * - 3 school admins
+ * - 15 schools (10 linked to superadmin #1 plan, 5 linked to superadmin #2 plan)
+ * - 5 assigned schools per school admin
+ * - 12 classrooms per assigned school per school admin
+ * - 15 students per classroom
  */
 
-require('dotenv').config();
-const mongoose = require('mongoose');
-const { nanoid } = require('nanoid');
+require("dotenv").config();
+const mongoose = require("mongoose");
+const { nanoid } = require("nanoid");
 
-const User = require('../managers/entities/user/user.mongoModel');
-const School = require('../managers/entities/school/school.mongoModel');
-const Classroom = require('../managers/entities/classroom/classroom.mongoModel');
-const Student = require('../managers/entities/student/student.mongoModel');
+const User = require("../managers/entities/user/user.mongoModel");
+const School = require("../managers/entities/school/school.mongoModel");
+const Classroom = require("../managers/entities/classroom/classroom.mongoModel");
+const Student = require("../managers/entities/student/student.mongoModel");
 
-const CONSTANTS = require('../managers/_common/constants');
+const CONSTANTS = require("../managers/_common/constants");
 
-async function seed() {
-    try {
-        console.log('🌱 Starting database seeding...\n');
+const SUPERADMINS = [
+  {
+    username: "superadmin_primary",
+    email: "superadmin1@school-system.com",
+    password: "Superadmin1@123",
+    tag: "SA1",
+  },
+  {
+    username: "superadmin_secondary",
+    email: "superadmin2@school-system.com",
+    password: "Superadmin2@123",
+    tag: "SA2",
+  },
+];
 
-        // Connect to MongoDB
-        await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-        console.log('✅ Connected to MongoDB\n');
+const SCHOOL_ADMINS = [
+  {
+    username: "schooladmin_north",
+    email: "schooladmin1@school-system.com",
+    password: "SchoolAdmin1@123",
+    tag: "ADM1",
+  },
+  {
+    username: "schooladmin_central",
+    email: "schooladmin2@school-system.com",
+    password: "SchoolAdmin2@123",
+    tag: "ADM2",
+  },
+  {
+    username: "schooladmin_south",
+    email: "schooladmin3@school-system.com",
+    password: "SchoolAdmin3@123",
+    tag: "ADM3",
+  },
+];
 
-        // Clear existing data
-        console.log('🗑️  Clearing existing data...');
-        await Promise.all([
-            User.deleteMany({}),
-            School.deleteMany({}),
-            Classroom.deleteMany({}),
-            Student.deleteMany({})
-        ]);
-        console.log('✅ Existing data cleared\n');
+const CLASSROOMS_PER_SCHOOL_PER_ADMIN = 12;
+const STUDENTS_PER_CLASSROOM = 15;
 
-        // Create Superadmin
-        console.log('👤 Creating Superadmin...');
-        const superadmin = new User({
-            username: 'superadmin',
-            email: 'superadmin@school-system.com',
-            password: 'Superadmin@123',
-            role: CONSTANTS.ROLES.SUPERADMIN,
-            key: nanoid(32),
-            status: CONSTANTS.USER_STATUS.ACTIVE
-        });
-        await superadmin.save();
-        console.log(`✅ Superadmin created: ${superadmin.email}\n`);
+const GRADE_LEVELS = [
+  "1st Grade",
+  "2nd Grade",
+  "3rd Grade",
+  "4th Grade",
+  "5th Grade",
+  "6th Grade",
+  "7th Grade",
+  "8th Grade",
+  "9th Grade",
+  "10th Grade",
+  "11th Grade",
+  "12th Grade",
+];
 
-        // Create Schools
-        console.log('🏫 Creating Schools...');
-        const school1 = new School({
-            name: 'Sunrise Elementary School',
-            address: {
-                street: '123 Education Ave',
-                city: 'Springfield',
-                state: 'IL',
-                zipCode: '62701',
-                country: 'USA'
-            },
-            contactInfo: {
-                phone: '+1-217-555-0101',
-                email: 'info@sunrise-elementary.edu',
-                website: 'https://sunrise-elementary.edu'
-            },
-            metadata: {
-                establishedDate: new Date('2000-01-15'),
-                registrationNumber: 'SE-2000-001',
-                accreditation: 'State Board of Education'
-            },
-            status: CONSTANTS.SCHOOL_STATUS.ACTIVE
-        });
-        await school1.save();
-        console.log(`✅ Created: ${school1.name}`);
+const STATES = ["CA", "TX", "FL", "IL", "NY", "WA", "CO", "AZ", "GA", "NC"];
+const CITIES = [
+  "Springfield",
+  "Riverside",
+  "Fairview",
+  "Greenville",
+  "Madison",
+  "Franklin",
+  "Georgetown",
+  "Clinton",
+  "Salem",
+  "Bristol",
+];
 
-        const school2 = new School({
-            name: 'Oakwood High School',
-            address: {
-                street: '456 Knowledge Blvd',
-                city: 'Chicago',
-                state: 'IL',
-                zipCode: '60601',
-                country: 'USA'
-            },
-            contactInfo: {
-                phone: '+1-312-555-0202',
-                email: 'contact@oakwood-high.edu',
-                website: 'https://oakwood-high.edu'
-            },
-            metadata: {
-                establishedDate: new Date('1995-09-01'),
-                registrationNumber: 'OH-1995-002',
-                accreditation: 'State Board of Education'
-            },
-            status: CONSTANTS.SCHOOL_STATUS.ACTIVE
-        });
-        await school2.save();
-        console.log(`✅ Created: ${school2.name}\n`);
+function getSchoolBlueprint({ index, creatorTag }) {
+  const city = CITIES[index % CITIES.length];
+  const state = STATES[index % STATES.length];
+  const schoolNumber = String(index + 1).padStart(2, "0");
+  const name = `${creatorTag} Learning Campus ${schoolNumber}`;
+  const domain = `${creatorTag.toLowerCase()}-${schoolNumber}.school.local`;
 
-        // Create School Administrators
-        console.log('👥 Creating School Administrators...');
-        const admin1 = new User({
-            username: 'admin_sunrise',
-            email: 'admin@sunrise-elementary.edu',
-            password: 'Admin@123',
-            role: CONSTANTS.ROLES.SCHOOL_ADMIN,
-            assignedSchool: school1._id,
-            key: nanoid(32),
-            status: CONSTANTS.USER_STATUS.ACTIVE
-        });
-        await admin1.save();
-        school1.administrators.push(admin1._id);
-        await school1.save();
-        console.log(`✅ Created: ${admin1.email} → ${school1.name}`);
-
-        const admin2 = new User({
-            username: 'admin_oakwood',
-            email: 'admin@oakwood-high.edu',
-            password: 'Admin@123',
-            role: CONSTANTS.ROLES.SCHOOL_ADMIN,
-            assignedSchool: school2._id,
-            key: nanoid(32),
-            status: CONSTANTS.USER_STATUS.ACTIVE
-        });
-        await admin2.save();
-        school2.administrators.push(admin2._id);
-        await school2.save();
-        console.log(`✅ Created: ${admin2.email} → ${school2.name}\n`);
-
-        // Create Classrooms for School 1
-        console.log('🚪 Creating Classrooms for Sunrise Elementary...');
-        const classroom1 = new Classroom({
-            name: 'Grade 1 - Room A',
-            roomNumber: '101',
-            school: school1._id,
-            gradeLevel: '1st Grade',
-            capacity: 25,
-            currentEnrollment: 0,
-            resources: ['Whiteboard', 'Projector', 'Computers'],
-            status: CONSTANTS.CLASSROOM_STATUS.ACTIVE
-        });
-        await classroom1.save();
-        console.log(`✅ Created: ${classroom1.name}`);
-
-        const classroom2 = new Classroom({
-            name: 'Grade 2 - Room B',
-            roomNumber: '102',
-            school: school1._id,
-            gradeLevel: '2nd Grade',
-            capacity: 30,
-            currentEnrollment: 0,
-            resources: ['Whiteboard', 'Library Corner'],
-            status: CONSTANTS.CLASSROOM_STATUS.ACTIVE
-        });
-        await classroom2.save();
-        console.log(`✅ Created: ${classroom2.name}\n`);
-
-        // Create Classrooms for School 2
-        console.log('🚪 Creating Classrooms for Oakwood High...');
-        const classroom3 = new Classroom({
-            name: 'Math 101',
-            roomNumber: '201',
-            school: school2._id,
-            gradeLevel: '9th Grade',
-            capacity: 35,
-            currentEnrollment: 0,
-            resources: ['Whiteboard', 'Scientific Calculators', 'Smart Board'],
-            status: CONSTANTS.CLASSROOM_STATUS.ACTIVE
-        });
-        await classroom3.save();
-        console.log(`✅ Created: ${classroom3.name}\n`);
-
-        // Create Sample Students
-        console.log('👨‍🎓 Creating Sample Students...');
-        const student1 = new Student({
-            firstName: 'Alice',
-            lastName: 'Johnson',
-            dateOfBirth: new Date('2016-03-15'),
-            studentId: 'SE-2024-001',
-            school: school1._id,
-            classroom: classroom1._id,
-            guardianInfo: {
-                guardianName: 'Robert Johnson',
-                relationship: 'Father',
-                phone: '+1-217-555-1001',
-                email: 'rjohnson@email.com',
-                address: {
-                    street: '789 Oak St',
-                    city: 'Springfield',
-                    state: 'IL',
-                    zipCode: '62701'
-                }
-            },
-            status: CONSTANTS.STUDENT_STATUS.ACTIVE
-        });
-        await student1.save();
-        classroom1.currentEnrollment += 1;
-        await classroom1.save();
-        console.log(`✅ Created: ${student1.fullName} → ${school1.name}`);
-
-        const student2 = new Student({
-            firstName: 'Bob',
-            lastName: 'Smith',
-            dateOfBirth: new Date('2010-07-22'),
-            studentId: 'OH-2024-001',
-            school: school2._id,
-            classroom: classroom3._id,
-            guardianInfo: {
-                guardianName: 'Linda Smith',
-                relationship: 'Mother',
-                phone: '+1-312-555-2001',
-                email: 'lsmith@email.com',
-                address: {
-                    street: '321 Maple Ave',
-                    city: 'Chicago',
-                    state: 'IL',
-                    zipCode: '60601'
-                }
-            },
-            status: CONSTANTS.STUDENT_STATUS.ACTIVE
-        });
-        await student2.save();
-        classroom3.currentEnrollment += 1;
-        await classroom3.save();
-        console.log(`✅ Created: ${student2.fullName} → ${school2.name}\n`);
-
-        // Summary
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('🎉 Database Seeding Complete!\n');
-        console.log('📊 Summary:');
-        console.log(`   • 1 Superadmin`);
-        console.log(`   • 2 Schools`);
-        console.log(`   • 2 School Administrators`);
-        console.log(`   • 3 Classrooms`);
-        console.log(`   • 2 Students\n`);
-        console.log('🔑 Login Credentials:');
-        console.log('   Superadmin:');
-        console.log(`     Email: superadmin@school-system.com`);
-        console.log(`     Password: Superadmin@123\n`);
-        console.log('   School Admin (Sunrise Elementary):');
-        console.log(`     Email: admin@sunrise-elementary.edu`);
-        console.log(`     Password: Admin@123\n`);
-        console.log('   School Admin (Oakwood High):');
-        console.log(`     Email: admin@oakwood-high.edu`);
-        console.log(`     Password: Admin@123`);
-        console.log('═══════════════════════════════════════════════════════\n');
-
-    } catch (error) {
-        console.error('❌ Seeding error:', error);
-    } finally {
-        await mongoose.connection.close();
-        console.log('👋 Database connection closed');
-        process.exit(0);
-    }
+  return {
+    name,
+    address: {
+      street: `${100 + index} Education Blvd`,
+      city,
+      state,
+      zipCode: `${String(90000 + index).padStart(5, "0")}`,
+      country: "USA",
+    },
+    contactInfo: {
+      phone: `+1-555-${String(1000 + index).padStart(4, "0")}`,
+      email: `info@${domain}`,
+      website: `https://${domain}`,
+    },
+    metadata: {
+      establishedDate: new Date(`20${String(10 + (index % 10)).padStart(2, "0")}-09-01`),
+      registrationNumber: `${creatorTag}-REG-${schoolNumber}`,
+      accreditation: "State Board of Education",
+    },
+    status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
+  };
 }
 
-// Run the seed function
+function getGuardianAddress(seed) {
+  return {
+    street: `${200 + seed} Family St`,
+    city: CITIES[seed % CITIES.length],
+    state: STATES[seed % STATES.length],
+    zipCode: `${String(70000 + seed).padStart(5, "0")}`,
+  };
+}
+
+async function clearCollections() {
+  await Promise.all([
+    User.deleteMany({}),
+    School.deleteMany({}),
+    Classroom.deleteMany({}),
+    Student.deleteMany({}),
+  ]);
+}
+
+async function seed() {
+  try {
+    console.log("Starting database seeding...");
+
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Connected to MongoDB");
+
+    console.log("Clearing existing data...");
+    await clearCollections();
+    console.log("Existing data cleared");
+
+    console.log("Creating superadmins...");
+    const superadmins = [];
+    for (const superadminSeed of SUPERADMINS) {
+      const superadmin = await User.create({
+        username: superadminSeed.username,
+        email: superadminSeed.email,
+        password: superadminSeed.password,
+        role: CONSTANTS.ROLES.SUPERADMIN,
+        key: nanoid(32),
+        status: CONSTANTS.USER_STATUS.ACTIVE,
+      });
+      superadmins.push(superadmin);
+    }
+    console.log(`Created ${superadmins.length} superadmins`);
+
+    console.log("Creating schools...");
+    const schools = [];
+    let globalSchoolIndex = 0;
+    for (let i = 0; i < 10; i += 1) {
+      const school = await School.create(
+        getSchoolBlueprint({ index: globalSchoolIndex, creatorTag: "SA1" }),
+      );
+      schools.push({ doc: school, createdBy: SUPERADMINS[0].email });
+      globalSchoolIndex += 1;
+    }
+    for (let i = 0; i < 5; i += 1) {
+      const school = await School.create(
+        getSchoolBlueprint({ index: globalSchoolIndex, creatorTag: "SA2" }),
+      );
+      schools.push({ doc: school, createdBy: SUPERADMINS[1].email });
+      globalSchoolIndex += 1;
+    }
+    console.log(`Created ${schools.length} schools`);
+
+    // Assign 5 schools per school admin (non-overlapping groups of 5).
+    const adminSchoolBuckets = [
+      schools.slice(0, 5),
+      schools.slice(5, 10),
+      schools.slice(10, 15),
+    ];
+
+    console.log("Creating school admins and assigning schools...");
+    const schoolAdmins = [];
+    for (let i = 0; i < SCHOOL_ADMINS.length; i += 1) {
+      const adminSeed = SCHOOL_ADMINS[i];
+      const assignedSchoolRefs = adminSchoolBuckets[i];
+      const primaryAssignedSchoolId = assignedSchoolRefs[0].doc._id;
+
+      const schoolAdmin = await User.create({
+        username: adminSeed.username,
+        email: adminSeed.email,
+        password: adminSeed.password,
+        role: CONSTANTS.ROLES.SCHOOL_ADMIN,
+        assignedSchool: primaryAssignedSchoolId,
+        key: nanoid(32),
+        status: CONSTANTS.USER_STATUS.ACTIVE,
+      });
+
+      schoolAdmins.push({
+        doc: schoolAdmin,
+        schools: assignedSchoolRefs,
+      });
+
+      await School.updateMany(
+        { _id: { $in: assignedSchoolRefs.map((entry) => entry.doc._id) } },
+        { $addToSet: { administrators: schoolAdmin._id } },
+      );
+    }
+    console.log(`Created ${schoolAdmins.length} school admins`);
+
+    console.log("Creating classrooms and students...");
+    let totalClassrooms = 0;
+    let totalStudents = 0;
+
+    for (let adminIndex = 0; adminIndex < schoolAdmins.length; adminIndex += 1) {
+      const schoolAdmin = schoolAdmins[adminIndex];
+
+      for (let schoolIndex = 0; schoolIndex < schoolAdmin.schools.length; schoolIndex += 1) {
+        const schoolRef = schoolAdmin.schools[schoolIndex];
+        const schoolDoc = schoolRef.doc;
+
+        for (
+          let classroomIndex = 1;
+          classroomIndex <= CLASSROOMS_PER_SCHOOL_PER_ADMIN;
+          classroomIndex += 1
+        ) {
+          const roomSuffix = String(classroomIndex).padStart(2, "0");
+          const roomNumber = `${adminIndex + 1}${schoolIndex + 1}${roomSuffix}`;
+          const gradeLevel = GRADE_LEVELS[(classroomIndex - 1) % GRADE_LEVELS.length];
+
+          const classroom = await Classroom.create({
+            name: `${schoolDoc.name} - ${schoolAdmin.doc.username.toUpperCase()} - Class ${roomSuffix}`,
+            roomNumber,
+            school: schoolDoc._id,
+            gradeLevel,
+            capacity: 40,
+            currentEnrollment: 0,
+            resources: ["Whiteboard", "Projector", "Computers", "Library Corner"],
+            status: CONSTANTS.CLASSROOM_STATUS.ACTIVE,
+          });
+
+          const students = [];
+          for (let studentIndex = 1; studentIndex <= STUDENTS_PER_CLASSROOM; studentIndex += 1) {
+            const studentSeed = totalStudents + studentIndex;
+            const studentCode = `${schoolAdmin.doc.username
+              .split("_")[1]
+              .toUpperCase()}-${schoolIndex + 1}-${roomSuffix}-${String(studentIndex).padStart(2, "0")}`;
+
+            students.push({
+              firstName: `Student${adminIndex + 1}${schoolIndex + 1}${roomSuffix}${String(studentIndex).padStart(2, "0")}`,
+              lastName: "Test",
+              dateOfBirth: new Date(`201${(studentIndex % 8) + 1}-0${((studentIndex % 9) + 1)}-15`),
+              studentId: `STD-${studentCode}`,
+              school: schoolDoc._id,
+              classroom: classroom._id,
+              guardianInfo: {
+                guardianName: `Guardian ${studentCode}`,
+                relationship: studentIndex % 2 === 0 ? "Mother" : "Father",
+                phone: `+1-555-${String(3000 + studentSeed).padStart(4, "0")}`,
+                email: `guardian-${studentCode.toLowerCase()}@mail.local`,
+                address: getGuardianAddress(studentSeed),
+              },
+              status: CONSTANTS.STUDENT_STATUS.ACTIVE,
+            });
+          }
+
+          await Student.insertMany(students);
+
+          classroom.currentEnrollment = STUDENTS_PER_CLASSROOM;
+          await classroom.save();
+
+          totalClassrooms += 1;
+          totalStudents += STUDENTS_PER_CLASSROOM;
+        }
+      }
+    }
+
+    console.log("Seed complete");
+    console.log("Summary:");
+    console.log(`- Superadmins: ${superadmins.length}`);
+    console.log(`- School admins: ${schoolAdmins.length}`);
+    console.log(`- Schools: ${schools.length} (SA1: 10, SA2: 5)`);
+    console.log(`- Classrooms: ${totalClassrooms}`);
+    console.log(`- Students: ${totalStudents}`);
+    console.log("Login credentials:");
+    for (const entry of SUPERADMINS) {
+      console.log(`- ${entry.email} / ${entry.password} (${CONSTANTS.ROLES.SUPERADMIN})`);
+    }
+    for (const entry of SCHOOL_ADMINS) {
+      console.log(`- ${entry.email} / ${entry.password} (${CONSTANTS.ROLES.SCHOOL_ADMIN})`);
+    }
+  } catch (error) {
+    console.error("Seeding error:", error);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.connection.close();
+    console.log("Database connection closed");
+  }
+}
+
 seed();
