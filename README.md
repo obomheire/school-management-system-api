@@ -2,6 +2,11 @@
 
 A comprehensive school management system API built with Node.js, Express, and MongoDB.
 
+## Documentation
+
+- API documentation is available in [`docs/api-docs.md`](docs/api-docs.md)
+- Architectural design and database design (with diagrams) are available in [`docs/architectural-designs.md`](docs/architectural-designs.md)
+
 ## Prerequisites
 
 Before setting up the project, ensure you have the following installed on your system:
