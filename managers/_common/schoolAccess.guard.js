@@ -44,6 +44,16 @@ const resolveManagedSchoolId = ({
         if (!allowSchoolAdmin) {
             return { error: 'Access denied' };
         }
+
+        // When __schoolScope middleware has already validated school membership,
+        // use that scoped school id instead of single-field assignedSchool.
+        if (scopedSchoolId) {
+            if (requestedSchoolId && requestedSchoolId !== scopedSchoolId) {
+                return { error: 'Access denied. You can only manage your assigned school.' };
+            }
+            return { schoolId: scopedSchoolId };
+        }
+
         if (!__role.assignedSchool) {
             return { error: 'No school assigned to this administrator' };
         }

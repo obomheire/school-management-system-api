@@ -6,6 +6,7 @@
  */
 
 const CONSTANTS = require('../managers/_common/constants');
+const School = require('../managers/entities/school/school.mongoModel');
 
 module.exports = ({ meta, config, managers }) => {
     return async ({ req, res, next, results }) => {
@@ -45,27 +46,42 @@ module.exports = ({ meta, config, managers }) => {
             }
 
         } else if (roleData.role === CONSTANTS.ROLES.SCHOOL_ADMIN) {
-            // School admin can only access their assigned school
-            schoolId = roleData.assignedSchool;
-
-            if (!schoolId) {
-                return managers.responseDispatcher.dispatch(res, {
-                    ok: false,
-                    code: 403,
-                    errors: 'No school assigned to this administrator'
-                });
-            }
-
-            // Verify they're not trying to access a different school
             const requestedSchoolId = req.params.schoolId || req.query.schoolId || req.body.schoolId;
 
-            if (requestedSchoolId && requestedSchoolId !== schoolId) {
+            // For school_admin, require explicit schoolId and validate membership in school.administrators.
+            if (!requestedSchoolId) {
+                return managers.responseDispatcher.dispatch(res, {
+                    ok: false,
+                    code: 400,
+                    errors: 'schoolId is required for school administrator'
+                });
+            }
+
+            if (!requestedSchoolId.match(/^[0-9a-fA-F]{24}$/)) {
+                return managers.responseDispatcher.dispatch(res, {
+                    ok: false,
+                    code: 400,
+                    errors: 'Invalid schoolId format'
+                });
+            }
+
+            const allowedSchool = await School.findOne({
+                _id: requestedSchoolId,
+                administrators: roleData.userId,
+                status: CONSTANTS.SCHOOL_STATUS.ACTIVE
+            })
+                .select('_id')
+                .lean();
+
+            if (!allowedSchool) {
                 return managers.responseDispatcher.dispatch(res, {
                     ok: false,
                     code: 403,
-                    errors: 'Access denied. You can only access your assigned school.'
+                    errors: 'Access denied. You can only access schools assigned to you.'
                 });
             }
+
+            schoolId = requestedSchoolId;
         } else {
             // Unknown role
             return managers.responseDispatcher.dispatch(res, {
