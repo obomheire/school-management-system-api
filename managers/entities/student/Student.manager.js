@@ -534,17 +534,24 @@ module.exports = class StudentManager {
         };
       }
 
-      if (
-        __role &&
-        __role.role === CONSTANTS.ROLES.SCHOOL_ADMIN &&
-        targetSchoolId !== currentSchoolId
-      ) {
-        await session.abortTransaction();
-        return {
-          errors: [
-            "Access denied. You can only transfer students within your assigned school.",
-          ],
-        };
+      if (__role && __role.role === CONSTANTS.ROLES.SCHOOL_ADMIN) {
+        // Multi-school admin support: target school must also be assigned to the same admin.
+        const targetAllowed = await School.findOne({
+          _id: targetSchoolId,
+          administrators: __role.userId,
+          status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
+        })
+          .select("_id")
+          .lean();
+
+        if (!targetAllowed) {
+          await session.abortTransaction();
+          return {
+            errors: [
+              "Access denied. You can only transfer students to schools assigned to you.",
+            ],
+          };
+        }
       }
 
       // Fetch student
