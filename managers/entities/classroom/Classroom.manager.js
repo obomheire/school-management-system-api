@@ -15,9 +15,13 @@ module.exports = class ClassroomManager {
             'get=listClassrooms',
             'get=listDeletedClassrooms',
             'get=getClassroom',
+            'put=updateClassroom',
             'post=updateClassroom',
+            'delete=deleteClassroom',
             'post=deleteClassroom',
+            'put=restoreClassroom',
             'post=restoreClassroom',
+            'delete=permanentlyDeleteClassroom',
             'post=permanentlyDeleteClassroom'
         ];
     }

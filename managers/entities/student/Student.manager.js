@@ -17,9 +17,13 @@ module.exports = class StudentManager {
       "get=listWithdrawnStudents",
       "get=getStudent",
       "get=getWithdrawnStudent",
+      "put=updateStudent",
       "post=updateStudent",
+      "delete=withdrawnStudent",
       "post=withdrawnStudent",
+      "put=restoreStudent",
       "post=restoreStudent",
+      "put=transferStudent",
       "post=transferStudent",
     ];
   }

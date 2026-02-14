@@ -17,10 +17,15 @@ module.exports = class SchoolManager {
             'get=listSchools',
             'get=listDeletedSchools',
             'get=getSchool',
+            'put=updateSchool',
             'post=updateSchool',
+            'delete=deleteSchool',
             'post=deleteSchool',
+            'put=restoreSchool',
             'post=restoreSchool',
+            'delete=permanentlyDeleteSchool',
             'post=permanentlyDeleteSchool',
+            'put=assignAdministrator',
             'post=assignAdministrator'
         ];
     }
