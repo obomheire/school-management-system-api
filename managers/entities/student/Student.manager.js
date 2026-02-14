@@ -19,6 +19,7 @@ module.exports = class StudentManager {
       "get=getWithdrawnStudent",
       "post=updateStudent",
       "post=withdrawnStudent",
+      "post=restoreStudent",
       "post=transferStudent",
     ];
   }
@@ -486,6 +487,98 @@ module.exports = class StudentManager {
       await session.abortTransaction();
       console.error("Delete student error:", error);
       return { errors: ["Failed to delete student"] };
+    } finally {
+      session.endSession();
+    }
+  }
+
+  async restoreStudent({
+    __token,
+    __role,
+    __schoolScope,
+    __params,
+    __query,
+    schoolId,
+    studentId,
+  }) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const targetStudentIdentifier = this._resolveStudentIdentifier({
+        studentId,
+        __params,
+        __query,
+      });
+      const access = schoolAccessGuard.resolveManagedSchoolId({
+        __role,
+        __params,
+        __query,
+        schoolId,
+        scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+      });
+      if (access.error) {
+        await session.abortTransaction();
+        return { errors: [access.error] };
+      }
+      const targetSchoolId = access.schoolId;
+
+      if (!targetStudentIdentifier) {
+        await session.abortTransaction();
+        return { errors: ["Student ID is required"] };
+      }
+
+      const filter = this._buildStudentFilter({
+        schoolId: targetSchoolId,
+        identifier: targetStudentIdentifier,
+      });
+      filter.status = CONSTANTS.STUDENT_STATUS.WITHDRAWN;
+
+      const student = await Student.findOne(filter).session(session);
+      if (!student) {
+        await session.abortTransaction();
+        return { errors: ["Withdrawn student not found or access denied"] };
+      }
+
+      const school = await School.findOne({
+        _id: student.school,
+        status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
+      })
+        .session(session)
+        .lean();
+      if (!school) {
+        await session.abortTransaction();
+        return { errors: ["School not found or inactive"] };
+      }
+
+      const classroom = await Classroom.findOne({
+        _id: student.classroom,
+        school: student.school,
+        status: CONSTANTS.CLASSROOM_STATUS.ACTIVE,
+      }).session(session);
+      if (!classroom) {
+        await session.abortTransaction();
+        return { errors: ["Classroom not found or inactive"] };
+      }
+
+      if ((classroom.currentEnrollment + 1) > classroom.capacity) {
+        await session.abortTransaction();
+        return { errors: ["Classroom is at full capacity"] };
+      }
+
+      classroom.currentEnrollment += 1;
+      await classroom.save({ session });
+
+      student.status = CONSTANTS.STUDENT_STATUS.ACTIVE;
+      await student.save({ session });
+
+      await session.commitTransaction();
+
+      return { message: "Student restored successfully", student };
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("Restore student error:", error);
+      return { errors: ["Failed to restore student"] };
     } finally {
       session.endSession();
     }

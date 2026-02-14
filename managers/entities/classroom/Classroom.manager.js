@@ -17,6 +17,7 @@ module.exports = class ClassroomManager {
             'get=getClassroom',
             'post=updateClassroom',
             'post=deleteClassroom',
+            'post=restoreClassroom',
             'post=permanentlyDeleteClassroom'
         ];
     }
@@ -274,6 +275,55 @@ module.exports = class ClassroomManager {
         } catch (error) {
             console.error('Delete classroom error:', error);
             return { errors: ['Failed to delete classroom'] };
+        }
+    }
+
+    async restoreClassroom({ __token, __role, __schoolScope, __params, __query, schoolId, classroomId }) {
+        try {
+            const targetClassroomId = classroomId || (__params && (__params.classroomId || __params.id)) || (__query && (__query.classroomId || __query.id));
+            const access = schoolAccessGuard.resolveManagedSchoolId({
+                __role,
+                __params,
+                __query,
+                schoolId,
+                scopedSchoolId: __schoolScope && __schoolScope.schoolId,
+            });
+            if (access.error) return { errors: [access.error] };
+            const targetSchoolId = access.schoolId;
+
+            if (!targetClassroomId) {
+                return { errors: ['Classroom ID is required'] };
+            }
+
+            const school = await School.findOne({
+                _id: targetSchoolId,
+                status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
+            }).lean();
+            if (!school) {
+                return { errors: ['School not found or inactive'] };
+            }
+
+            const classroom = await Classroom.findOne({
+                _id: targetClassroomId,
+                school: targetSchoolId
+            });
+
+            if (!classroom) {
+                return { errors: ['Classroom not found or access denied'] };
+            }
+
+            if (classroom.status !== CONSTANTS.CLASSROOM_STATUS.INACTIVE) {
+                return { errors: ['Classroom is not in recycle bin'] };
+            }
+
+            classroom.status = CONSTANTS.CLASSROOM_STATUS.ACTIVE;
+            await classroom.save();
+
+            return { message: 'Classroom restored successfully', classroom };
+
+        } catch (error) {
+            console.error('Restore classroom error:', error);
+            return { errors: ['Failed to restore classroom'] };
         }
     }
 

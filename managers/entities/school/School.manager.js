@@ -19,6 +19,7 @@ module.exports = class SchoolManager {
             'get=getSchool',
             'post=updateSchool',
             'post=deleteSchool',
+            'post=restoreSchool',
             'post=permanentlyDeleteSchool',
             'post=assignAdministrator'
         ];
@@ -354,6 +355,58 @@ module.exports = class SchoolManager {
         } catch (error) {
             console.error('Delete school error:', error);
             return { errors: ['Failed to delete school'] };
+        }
+    }
+
+    /**
+     * Restore school from recycle bin (inactive -> active)
+     */
+    async restoreSchool({ __token, __role, __params, __query, schoolId }) {
+        try {
+            const roleError = this._requireRoleData(__role);
+            if (roleError) return roleError;
+
+            const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+
+            if (!targetSchoolId) {
+                return { errors: ['School ID is required'] };
+            }
+
+            const actor = await this._getActorFromToken(__token);
+            if (!actor || actor.status !== CONSTANTS.USER_STATUS.ACTIVE) {
+                return { errors: ['Authentication required'] };
+            }
+
+            let school = null;
+            if (rbacHelper.isSuperadmin(actor.role)) {
+                school = await School.findById(targetSchoolId);
+            } else if (rbacHelper.isSchoolAdmin(actor.role)) {
+                school = await School.findOne({
+                    _id: targetSchoolId,
+                    administrators: actor._id,
+                });
+            } else {
+                return { errors: ['Access denied'] };
+            }
+
+            if (!school) {
+                return { errors: ['School not found'] };
+            }
+
+            if (school.status !== CONSTANTS.SCHOOL_STATUS.INACTIVE) {
+                return { errors: ['School is not in recycle bin'] };
+            }
+
+            school.status = CONSTANTS.SCHOOL_STATUS.ACTIVE;
+            await school.save();
+
+            await this.cache.key.delete({ key: `school:${targetSchoolId}` });
+
+            return { message: 'School restored successfully', school };
+
+        } catch (error) {
+            console.error('Restore school error:', error);
+            return { errors: ['Failed to restore school'] };
         }
     }
 
