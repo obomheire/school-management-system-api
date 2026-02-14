@@ -156,6 +156,42 @@ npm install -g nodemon
 nodemon index.js
 ```
 
+## Testing
+
+The project includes a comprehensive test suite to ensure API functionality. To run the tests:
+
+### Install Test Dependencies
+
+```bash
+npm install --save-dev jest supertest
+```
+
+### Run Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run specific test file
+npm test -- tests/api/api.test.js
+```
+
+### Test Structure
+
+The test suite includes:
+
+- **API Tests** (`tests/api/api.test.js`): Tests for all API endpoints
+- **Unit Tests** (`tests/unit/`): Individual component tests
+- **Integration Tests**: Full workflow tests
+
+The tests use a simulated server approach that mocks external dependencies, allowing for fast and reliable testing without requiring MongoDB, Redis, or other external services to be running.
+
 ## Troubleshooting
 
 ### Common Issues:
