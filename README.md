@@ -1,225 +1,188 @@
 # School Management System API
 
-A comprehensive RESTful API for managing schools, classrooms, and students with Role-Based Access Control (RBAC).
+A comprehensive school management system API built with Node.js, Express, and MongoDB.
 
-## ✨ Features
+## Prerequisites
 
-- **Role-Based Access Control (RBAC)**: Superadmin and School Administrator roles
-- **Entity Management**: Schools, Classrooms, and Students with full CRUD operations
-- **Security**: JWT authentication, password hashing, school-level access control
-- **Performance**: Redis caching, MongoDB indexes, pagination
-- **Data Integrity**: MongoDB transactions, classroom capacity enforcement, transfer history
+Before setting up the project, ensure you have the following installed on your system:
 
-## 🛠️ Tech Stack
+- [Node.js](https://nodejs.org/) (v14 or higher recommended)
+- [MongoDB](https://www.mongodb.com/) (either local installation or cloud instance)
+- [Redis](https://redis.io/) (for caching and state management)
+- [Git](https://git-scm.com/)
 
-- Node.js + Express.js
-- MongoDB (Mongoose)
-- Redis (Caching)
-- JWT Authentication
-- bcrypt (Password Hashing)
+## Getting Started
 
-## 🚀 Quick Start
-
-### Installation
+### 1. Clone the Repository
 
 ```bash
-# Install dependencies
+git clone <repository-url>
+cd school-management-system-api
+```
+
+### 2. Install Dependencies
+
+```bash
 npm install
+```
 
-# Configure environment variables
+### 3. Configure Environment Variables
+
+Create a `.env` file in the root directory by copying the example:
+
+```bash
 cp .env.example .env
-# Edit .env with your MongoDB and Redis credentials
+```
 
-# Seed the database
-node scripts/seed.js
+Then update the values in the `.env` file with your specific configurations:
 
-# Start the server
+#### Required Environment Variables:
+
+- `SERVICE_NAME`: Name of your service (default: school-management-system-api)
+- `USER_PORT`: Port for user-facing API (default: 5111)
+- `ADMIN_PORT`: Port for admin-facing API (default: 5222)
+- `MONGO_URI`: MongoDB connection string
+- `CACHE_REDIS`: Redis URI for caching
+- `OYSTER_REDIS`: Redis URI for Oyster DB
+- `CORTEX_REDIS`: Redis URI for Cortex state management
+- `LONG_TOKEN_SECRET`: Secret key for long-lived tokens (min 32 chars)
+- `SHORT_TOKEN_SECRET`: Secret key for short-lived tokens (min 32 chars)
+- `NACL_SECRET`: Secret key for encryption (min 32 chars)
+
+#### Example `.env` file:
+
+```env
+# Server Configuration
+SERVICE_NAME=school-management-system-api
+USER_PORT=5111
+ADMIN_PORT=5222
+NODE_ENV=development
+
+# MongoDB Configuration
+MONGO_URI=mongodb://localhost:27017/school_management
+
+# Redis Configuration
+CACHE_REDIS=redis://127.0.0.1:6379
+CACHE_PREFIX=sms_cache_
+
+OYSTER_REDIS=redis://127.0.0.1:6379
+OYSTER_PREFIX=sms_oyster_
+
+CORTEX_REDIS=redis://127.0.0.1:6379
+CORTEX_PREFIX=sms_cortex_
+CORTEX_TYPE=master
+
+# JWT Token Secrets (CHANGE THESE IN PRODUCTION)
+LONG_TOKEN_SECRET=your-super-secret-long-token-key-change-this-in-production-min-32-chars
+SHORT_TOKEN_SECRET=your-super-secret-short-token-key-change-this-in-production-min-32-chars
+NACL_SECRET=your-super-secret-nacl-key-change-this-in-production-min-32-chars
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3000
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_AUTH_MAX_REQUESTS=20
+```
+
+### 4. Set Up MongoDB
+
+You need to have MongoDB running. You can either:
+
+- Install MongoDB locally: Follow the [official installation guide](https://docs.mongodb.com/manual/installation/)
+- Use MongoDB Atlas: Create a free cluster at [MongoDB Atlas](https://www.mongodb.com/atlas/database)
+
+Update the `MONGO_URI` in your `.env` file with the appropriate connection string.
+
+### 5. Set Up Redis
+
+You need to have Redis running. You can either:
+
+- Install Redis locally: Follow the [official installation guide](https://redis.io/topics/quickstart)
+- Use a cloud Redis service like Redis Labs
+
+Update the Redis URIs in your `.env` file with the appropriate connection strings.
+
+### 6. Run the Application
+
+Start the server using npm:
+
+```bash
 npm start
 ```
 
-Server will run on `http://localhost:5111`
-
-### Test Credentials (After Seeding)
-
-**Superadmin:**
-- Email: `superadmin@school-system.com`
-- Password: `Superadmin@123`
-
-**School Admin (Sunrise Elementary):**
-- Email: `admin@sunrise-elementary.edu`
-- Password: `Admin@123`
-
-## 📚 API Documentation
-
-### Authentication Flow
-
-1. **Register/Login** → Get `longToken`
-2. **Create Short Token** → Get `shortToken`
-3. **Use Short Token** in all requests via `token` header
-
-### Main Endpoints
-
-#### Authentication
-```http
-POST /api/auth/register      # Register user
-POST /api/auth/login         # Login
-POST /api/token/v1_createShortToken  # Create short token from long token
-GET  /api/auth/getProfile    # Get user profile
-```
-
-#### Schools (Superadmin only)
-```http
-POST /api/school/createSchool
-GET  /api/school/listSchools?page=1&limit=20
-GET  /api/school/getSchool?schoolId=<id>
-POST /api/school/updateSchool?schoolId=<id>
-POST /api/school/deleteSchool?schoolId=<id>
-POST /api/school/assignAdministrator?schoolId=<id>
-```
-
-#### Classrooms (School Admin scoped)
-```http
-POST /api/classroom/createClassroom
-GET  /api/classroom/listClassrooms?schoolId=<id>&page=1
-GET  /api/classroom/getClassroom?schoolId=<id>&classroomId=<id>
-POST /api/classroom/updateClassroom?schoolId=<id>&classroomId=<id>
-POST /api/classroom/deleteClassroom?schoolId=<id>&classroomId=<id>
-```
-
-#### Students (School Admin scoped)
-```http
-POST /api/student/enrollStudent
-GET  /api/student/listStudents?schoolId=<id>&page=1
-GET  /api/student/getStudent?schoolId=<id>&studentId=<id>
-POST /api/student/updateStudent?schoolId=<id>&studentId=<id>
-POST /api/student/withdrawnStudent?schoolId=<id>&studentId=<id>
-POST /api/student/transferStudent?schoolId=<id>&studentId=<id>
-```
-
-### Example: Register and Login
+Or run directly with node:
 
 ```bash
-# 1. Register
-curl -X POST http://localhost:5111/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin_test",
-    "email": "test@example.com",
-    "password": "Test@123",
-    "role": "superadmin"
-  }'
-
-# 2. Login
-curl -X POST http://localhost:5111/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "superadmin@school-system.com",
-    "password": "Superadmin@123"
-  }'
-
-# 3. Create Short Token
-curl -X POST http://localhost:5111/api/token/v1_createShortToken \
-  -H "token: <long-token-from-login>"
-
-# 4. Use Short Token
-curl -X GET http://localhost:5111/api/auth/getProfile \
-  -H "token: <short-token>"
+node index.js
 ```
 
-## 🔐 Role-Based Access Control
+The application will start and listen on the ports specified in your `.env` file:
+- User API: `http://localhost:5111`
+- Admin API: `http://localhost:5222`
 
-### Superadmin
-- Full access to all schools
-- Can create/update/delete schools
-- Can assign School Admins
-- Can manage all classrooms and students
-
-### School Administrator
-- Access only to their assigned school
-- Cannot access other schools
-- Can manage classrooms in their school
-- Can manage students in their school
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-managers/
-  ├── entities/
-  │   ├── auth/          # Authentication manager
-  │   ├── school/        # School CRUD operations
-  │   ├── classroom/     # Classroom management
-  │   └── student/       # Student enrollment & transfer
-  ├── _common/
-  │   ├── constants.js   # System constants
-  │   ├── rbac.helper.js # RBAC utilities
-  │   └── schema.validators.js
-mws/
-  ├── __auth.mw.js       # JWT authentication
-  ├── __role.mw.js       # Role authorization
-  └── __schoolScope.mw.js # School scoping
-scripts/
-  └── seed.js            # Database seeding
+school-management-system-api/
+├── app.js                 # Main application entry point
+├── index.js              # Alternative entry point
+├── .env.example          # Example environment variables
+├── package.json          # Project dependencies and scripts
+├── config/               # Configuration files
+│   ├── index.config.js   # Main configuration
+│   └── envs/             # Environment-specific configs
+├── connect/              # Database connection utilities
+├── loaders/              # Module loaders
+├── managers/             # Service managers
+├── cache/                # Caching utilities
+├── libs/                 # Utility libraries
+├── mws/                  # Middleware
+└── README.md            # This file
 ```
 
-## 🌍 Environment Variables
+## Development
 
-```env
-# Server
-USER_PORT=5111
-NODE_ENV=development
+For development purposes, you can use nodemon to automatically restart the server when files change:
 
-# MongoDB
-MONGO_URI=mongodb+srv://...
-
-# Redis
-CACHE_REDIS=redis://...
-OYSTER_REDIS=redis://...
-CORTEX_REDIS=redis://...
-
-# JWT Secrets (CHANGE IN PRODUCTION!)
-LONG_TOKEN_SECRET=your-secret-min-32-chars
-SHORT_TOKEN_SECRET=your-secret-min-32-chars
-NACL_SECRET=your-secret-min-32-chars
+```bash
+npm install -g nodemon
+nodemon index.js
 ```
 
-## 🚢 Deployment
+## Troubleshooting
 
-1. Set environment variables in your hosting platform
-2. Deploy to Railway, Render, Heroku, or DigitalOcean
-3. Run seed script: `node scripts/seed.js`
-4. Test all endpoints
+### Common Issues:
 
-## 🧪 Testing
+1. **Environment Variables Missing**: Make sure all required environment variables are set in your `.env` file, especially the token secrets.
 
-### Test RBAC
-1. Login as Superadmin → Access all schools ✅
-2. Login as School Admin → Access only assigned school ✅
-3. School Admin tries another school → 403 Error ✅
+2. **MongoDB Connection Issues**: Verify that MongoDB is running and accessible via the URI in your `.env` file.
 
-### Test Classroom Capacity
-1. Create classroom with capacity 2
-2. Enroll 2 students → Success ✅
-3. Enroll 3rd student → Capacity error ✅
+3. **Redis Connection Issues**: Ensure Redis is running and accessible via the URIs in your `.env` file.
 
-### Test Student Transfer
-1. Enroll student in School A
-2. Transfer to School B → Updates both schools ✅
-3. Check transfer history → Recorded ✅
+4. **Port Already in Use**: Check if the ports specified in your `.env` file (USER_PORT and ADMIN_PORT) are not being used by other applications.
 
-## 📝 Key Features
+### Error Messages:
 
-- **Manager-based Architecture**: Declarative middleware via `__` prefixed parameters
-- **Automatic Validation**: Schema-based input validation
-- **MongoDB Transactions**: Ensures data consistency for enrollment/transfer
-- **Redis Caching**: Frequently accessed schools cached (1 hour TTL)
-- **Pagination**: All list endpoints support pagination (default: 20, max: 100)
-- **Security Headers**: Helmet.js ready for production
-- **Password Hashing**: bcrypt with 10 salt rounds
+- If you see "missing .env variables check index.config", make sure you have set all three required secret keys in your `.env` file.
+- If you see "MONGO_URI not found in environment variables", ensure the MONGO_URI variable is properly set.
 
-## 📄 License
+## Security Notes
 
-ISC
+- Change all default secret keys before deploying to production
+- Use strong, unique passwords for database connections
+- Restrict access to your Redis and MongoDB instances
+- Use HTTPS in production environments
 
----
+## Contributing
 
-**Made for the School Management System Technical Challenge** 🎓
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the ISC License.
