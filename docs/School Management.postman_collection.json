@@ -1,0 +1,1008 @@
+{
+  "info": {
+    "_postman_id": "dd57b763-aa4b-44dc-998f-a0131b6e2f79",
+    "name": "School Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "23412698"
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin_test\",\n    \"email\": \"test@example.com\",\n    \"password\": \"Test@123\",\n    \"role\": \"superadmin\"\n  }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/auth/register",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"superadmin@school-system.com\",\n    \"password\": \"Superadmin@123\"\n    // \"email\": \"admin@sunrise-elementary.edu\",\n    // \"password\": \"Admin@123\"\n    // \"email\": \"admin@oakwood-high.edu\",\n    // \"password\": \"Admin@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/auth/login",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Short Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{longToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/token/v1_createShortToken",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "token",
+                "v1_createShortToken"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/auth/getProfile",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "auth",
+                "getProfile"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "SCHOOL",
+      "item": [
+        {
+          "name": "Create School",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USA Boys High Schoolllll\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Springfield\",\n    \"state\": \"IL\",\n    \"zipCode\": \"62701\",\n    \"country\": \"USA\"\n  },\n  \"contactInfo\": {\n    \"phone\": \"+1-555-0100\",\n    \"email\": \"info@example.edu\",\n    \"website\": \"https://example.edu\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/school/createSchool",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "createSchool"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List School",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/listSchools?page=1&limit=20",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "listSchools"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get School",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/getSchool?schoolId=698f8d58ab9aaf20f460cac0",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "getSchool"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update School",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USA Boys High School II\"\n//   \"address\": {\n//     \"street\": \"123 Main St\",\n//     \"city\": \"Springfield\",\n//     \"state\": \"IL\",\n//     \"zipCode\": \"62701\",\n//     \"country\": \"USA\"\n//   },\n//   \"contactInfo\": {\n//     \"phone\": \"+1-555-0100\",\n//     \"email\": \"info@example.edu\",\n//     \"website\": \"https://example.edu\"\n//   }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/school/updateSchool?schoolId=69901161a710395c4d41c544",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "updateSchool"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assing Admin to School",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminId\": \"698e4711146166f891c7d7af\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/school/assignAdministrator?schoolId=698f8d58ab9aaf20f460cac0",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "assignAdministrator"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete School",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/deleteSchool?schoolId=69901161a710395c4d41c544",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "deleteSchool"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore Deleted School",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/restoreSchool?schoolId=69901161a710395c4d41c544",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "restoreSchool"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Deleted School",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/listDeletedSchools?page=1&limit=20",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "listDeletedSchools"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete School Permanently",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/school/permanentlyDeleteSchool?schoolId=698f8ca6ab9aaf20f460caae",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "school",
+                "permanentlyDeleteSchool"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8ca6ab9aaf20f460caae"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CLASSROOM",
+      "item": [
+        {
+          "name": "Create Classroom",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolId\": \"69901161a710395c4d41c544\",\n  \"name\": \"SCS 800\",\n  \"roomNumber\": \"800\",\n  \"gradeLevel\": \"7th Grade\",\n  \"capacity\": 30,\n  \"resources\": [\"Whiteboard\", \"Projector\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/classroom/createClassroom",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "createClassroom"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Classroom",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/listClassrooms?schoolId=69901161a710395c4d41c544&page=1",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "listClassrooms"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Classroom",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/getClassroom?schoolId=698f8c69ab9aaf20f460caaa&classroomId=698fbe3566017eaf3bccc141",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "getClassroom"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8c69ab9aaf20f460caaa"
+                },
+                {
+                  "key": "classroomId",
+                  "value": "698fbe3566017eaf3bccc141"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Classroom",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SCS 404\",\n  \"roomNumber\": \"205\",\n  \"gradeLevel\": \"8th Grade\",\n  \"capacity\": 35,\n  \"resources\": [\"Whiteboard\", \"Projector\", \"Laptop\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/classroom/updateClassroom?schoolId=698f8d58ab9aaf20f460cac0&classroomId=698f95d797d10892f05d85f3",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "updateClassroom"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "classroomId",
+                  "value": "698f95d797d10892f05d85f3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Classroom",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/deleteClassroom?schoolId=69901161a710395c4d41c544&classroomId=699012a9a710395c4d41c561",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "deleteClassroom"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                },
+                {
+                  "key": "classroomId",
+                  "value": "699012a9a710395c4d41c561"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore Deleted Classroom",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/restoreClassroom?schoolId=69901161a710395c4d41c544&classroomId=699012a9a710395c4d41c561",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "restoreClassroom"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                },
+                {
+                  "key": "classroomId",
+                  "value": "699012a9a710395c4d41c561"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Deleted Classroom",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/listDeletedClassrooms?schoolId=69901161a710395c4d41c544&page=1&limit=20",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "listDeletedClassrooms"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "69901161a710395c4d41c544"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Classroom Permanetly",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/classroom/permanentlyDeleteClassroom?schoolId=698f8d58ab9aaf20f460cac0&classroomId=698f95d797d10892f05d85f3",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "classroom",
+                "permanentlyDeleteClassroom"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "classroomId",
+                  "value": "698f95d797d10892f05d85f3"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STUDENTS",
+      "item": [
+        {
+          "name": "Enroll Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolId\": \"698f8d58ab9aaf20f460cac0\",\n  \"firstName\": \"Zack\",\n  \"lastName\": \"Bello\",\n  \"dateOfBirth\": \"2015-05-15\",\n  \"studentId\": \"SE-2024-101\",\n  \"classroomId\": \"698fc59666017eaf3bccc171\",\n  \"guardianInfo\": {\n    \"guardianName\": \"Jane Doe\",\n    \"relationship\": \"Mother\",\n    \"phone\": \"+1-555-0123\",\n    \"email\": \"jane@example.com\",\n    \"address\": {\n      \"street\": \"456 Oak St\",\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"zipCode\": \"62701\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/student/enrollStudent",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "enrollStudent"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Student",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/student/listStudents?schoolId=698f8c69ab9aaf20f460caaa&page=1",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "listStudents"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8c69ab9aaf20f460caaa"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Student",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/student/getStudent?schoolId=698f8d58ab9aaf20f460cac0&studentId=698fa0b2d3571f6ceff0cb24",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "getStudent"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "studentId",
+                  "value": "698fa0b2d3571f6ceff0cb24"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Kabir\",\n  \"lastName\": \"Usman\",\n  \"dateOfBirth\": \"2015-05-16\",\n  \"classroomId\": \"698f977097d10892f05d8607\",\n  \"guardianInfo\": {\n    \"guardianName\": \"James Doe\",\n    \"relationship\": \"Mother\",\n    \"phone\": \"+1-555-0123\",\n    \"email\": \"jane@example.com\",\n    \"address\": {\n      \"street\": \"456 Oak St\",\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"zipCode\": \"62701\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/student/updateStudent?schoolId=698f8d58ab9aaf20f460cac0&studentId=698fa0b2d3571f6ceff0cb24",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "updateStudent"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "studentId",
+                  "value": "698fa0b2d3571f6ceff0cb24"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Wthdrawn Student",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/student/withdrawnStudent?schoolId=698f8d58ab9aaf20f460cac0&studentId=698fa0b2d3571f6ceff0cb24",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "withdrawnStudent"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "studentId",
+                  "value": "698fa0b2d3571f6ceff0cb24"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore Wthdrawn Student",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/student/restoreStudent?schoolId=<id>&studentId=<id-or-studentId>",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "restoreStudent"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "<id>"
+                },
+                {
+                  "key": "studentId",
+                  "value": "<id-or-studentId>"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Wthdrawn Student",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/student/listWithdrawnStudents?schoolId=698f8d58ab9aaf20f460cac0&page=1&limit=20",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "listWithdrawnStudents"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Student",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "token",
+                "value": "{{shortToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetSchoolId\": \"698f8c69ab9aaf20f460caaa\",\n  \"targetClassroomId\": \"698fc6a266017eaf3bccc17b\",\n  \"reason\": \"Family relocation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/student/transferStudent?schoolId=698f8d58ab9aaf20f460cac0&studentId=698fc7b766017eaf3bccc1a1",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "student",
+                "transferStudent"
+              ],
+              "query": [
+                {
+                  "key": "schoolId",
+                  "value": "698f8d58ab9aaf20f460cac0"
+                },
+                {
+                  "key": "studentId",
+                  "value": "698fc7b766017eaf3bccc1a1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

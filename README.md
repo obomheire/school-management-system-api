@@ -5,6 +5,7 @@ A comprehensive school management system API built with Node.js, Express, and Mo
 ## Documentation
 
 - API documentation is available in [`docs/api-docs.md`](docs/api-docs.md)
+- Postman collections is available in [`docs/School Management.postman_collection.json`](docs/api-docs.md)
 - Architectural design and database design (with diagrams) are available in [`docs/architectural-designs.md`](docs/architectural-designs.md)
 - Seeded test users/data reference is available in [`docs/test-data.md`](docs/test-data.md)
 
