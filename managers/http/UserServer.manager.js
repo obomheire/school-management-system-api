@@ -2,6 +2,7 @@ const http              = require('http');
 const express           = require('express');
 const cors              = require('cors');
 const helmet            = require('helmet');
+const mongoose          = require('mongoose');
 const createClient      = require('../../cache/redis-client').createClient;
 const getRateLimiters   = require('../../mws/__rateLimiter.mw');
 const app               = express();
@@ -51,6 +52,19 @@ module.exports = class UserServer {
         } catch (error) {
             console.error('Rate limiter Redis initialization failed. Falling back to memory store.', error.message);
         }
+
+        app.get('/api', (req, res) => {
+            const databaseStatus = mongoose.connection.readyState === 1 ? 'ok' : 'error';
+            const redisStatus = this.redisClient && this.redisClient.status === 'ready' ? 'ok' : 'error';
+            const appStatus = (databaseStatus === 'ok' && redisStatus === 'ok') ? 'ok' : 'error';
+
+            return res.status(appStatus === "ok" ? 200 : 503).json({
+              status: appStatus,
+              database: databaseStatus,
+              redis: redisStatus,
+              message: "Server is running ... 🚀",
+            });
+        });
 
         const { authLimiter, generalLimiter } = getRateLimiters({
             redisClient: this.redisClient,

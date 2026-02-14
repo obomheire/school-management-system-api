@@ -1,6 +1,7 @@
 # School Management System API Documentation
 
 ## Table of Contents
+- [Health Check](#health-check)
 - [Authentication](#authentication)
 - [School Management](#school-management)
 - [Classroom Management](#classroom-management)
@@ -9,6 +10,39 @@
 ## Base URL
 ```
 https://your-domain.com/api
+```
+
+## Health Check
+Check application, database, and redis connectivity status.
+
+### Endpoint
+```
+GET /
+```
+
+### Example Request
+```bash
+curl -X GET https://your-domain.com/api
+```
+
+### Success Response (`200 OK`)
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "redis": "ok",
+  "message": "Server is running ... 🚀"
+}
+```
+
+### Degraded Response (`503 Service Unavailable`)
+```json
+{
+  "status": "error",
+  "database": "ok|error",
+  "redis": "ok|error",
+  "message": "Server is running ... 🚀"
+}
 ```
 
 ## Authentication Headers
