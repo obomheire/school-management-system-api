@@ -18,8 +18,11 @@ tests/
 ├── api/
 │   └── api.test.js          # API endpoint tests
 ├── unit/
-│   ├── auth.manager.test.js # Unit tests for auth manager
-│   └── school.manager.test.js # Unit tests for school manager
+│   ├── api-status-mapping.test.js   # Api manager status-code mapping tests
+│   ├── response-dispatcher.test.js  # Response shape normalization tests
+│   ├── school-manager-rbac.test.js  # Superadmin-only school route guard tests
+│   ├── token-middleware.test.js     # Bearer token auth middleware tests
+│   └── basic.test.js                # Sanity test
 └── setup.js                 # Test setup and configuration
 ```
 
@@ -35,8 +38,11 @@ npm test
 # Run API tests
 npm test -- tests/api/api.test.js
 
-# Run unit tests
-npm test -- tests/unit/auth.manager.test.js
+# Run all unit tests
+npm test -- tests/unit
+
+# Run a specific unit test file
+npm test -- tests/unit/token-middleware.test.js
 ```
 
 ### Watch Mode
@@ -87,6 +93,11 @@ The test suite includes:
 - Input validation tests
 - Authorization tests (where applicable)
 - Edge case handling
+
+Recent additions specifically cover:
+- Bearer token authentication support in middleware
+- Superadmin-only enforcement for school management routes
+- Error payload normalization and status-code mapping behavior
 
 ## Mocking Strategy
 

@@ -18,15 +18,10 @@ module.exports = class SchoolManager {
             'get=listDeletedSchools',
             'get=getSchool',
             'put=updateSchool',
-            'post=updateSchool',
             'delete=deleteSchool',
-            'post=deleteSchool',
             'put=restoreSchool',
-            'post=restoreSchool',
             'delete=permanentlyDeleteSchool',
-            'post=permanentlyDeleteSchool',
             'put=assignAdministrator',
-            'post=assignAdministrator'
         ];
     }
 
@@ -92,7 +87,7 @@ module.exports = class SchoolManager {
                 ttl: 3600,
             });
 
-            return { school };
+            return { school, code: 201 };
 
         } catch (error) {
             console.error('Create school error:', error);
@@ -105,10 +100,8 @@ module.exports = class SchoolManager {
      */
     async listSchools({ __token, __role, __query }) {
         try {
-            const actor = await this._getActorFromToken(__token);
-            if (!actor || actor.status !== CONSTANTS.USER_STATUS.ACTIVE) {
-                return { errors: ['Authentication required'] };
-            }
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
             const page = parseInt(__query.page) || CONSTANTS.PAGINATION.DEFAULT_PAGE;
             const limit = Math.min(
@@ -116,36 +109,6 @@ module.exports = class SchoolManager {
                 CONSTANTS.PAGINATION.MAX_LIMIT
             );
             const skip = (page - 1) * limit;
-
-            if (rbacHelper.isSchoolAdmin(actor.role)) {
-                const adminFilter = {
-                    status: CONSTANTS.SCHOOL_STATUS.ACTIVE,
-                    administrators: actor._id,
-                };
-
-                const [schools, total] = await Promise.all([
-                    School.find(adminFilter)
-                        .skip(skip)
-                        .limit(limit)
-                        .sort({ createdAt: -1 })
-                        .lean(),
-                    School.countDocuments(adminFilter),
-                ]);
-
-                return {
-                    schools,
-                    pagination: {
-                        page,
-                        limit,
-                        total,
-                        pages: Math.ceil(total / limit)
-                    }
-                };
-            }
-
-            if (!rbacHelper.isSuperadmin(actor.role)) {
-                return { errors: ['Access denied'] };
-            }
 
             const filter = { status: CONSTANTS.SCHOOL_STATUS.ACTIVE };
 
@@ -221,23 +184,11 @@ module.exports = class SchoolManager {
      */
     async getSchool({ __token, __role, __params, __query, schoolId }) {
         try {
-            const roleError = this._requireRoleData(__role);
-            if (roleError) return roleError;
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
             const requestedSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
-            let targetSchoolId = requestedSchoolId;
-
-            if (rbacHelper.isSchoolAdmin(__role.role)) {
-                if (!__role.assignedSchool) {
-                    return { errors: ['No school assigned to this administrator'] };
-                }
-                if (requestedSchoolId && requestedSchoolId !== __role.assignedSchool) {
-                    return { errors: ['Access denied. You can only access your assigned school.'] };
-                }
-                targetSchoolId = __role.assignedSchool;
-            } else if (!rbacHelper.isSuperadmin(__role.role)) {
-                return { errors: ['Access denied'] };
-            }
+            const targetSchoolId = requestedSchoolId;
 
             if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
@@ -280,23 +231,11 @@ module.exports = class SchoolManager {
      */
     async updateSchool({ __token, __role, __params, __query, schoolId, name, address, contactInfo, status, metadata }) {
         try {
-            const roleError = this._requireRoleData(__role);
-            if (roleError) return roleError;
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
             const requestedSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
-            let targetSchoolId = requestedSchoolId;
-
-            if (rbacHelper.isSchoolAdmin(__role.role)) {
-                if (!__role.assignedSchool) {
-                    return { errors: ['No school assigned to this administrator'] };
-                }
-                if (requestedSchoolId && requestedSchoolId !== __role.assignedSchool) {
-                    return { errors: ['Access denied. You can only manage your assigned school.'] };
-                }
-                targetSchoolId = __role.assignedSchool;
-            } else if (!rbacHelper.isSuperadmin(__role.role)) {
-                return { errors: ['Access denied'] };
-            }
+            const targetSchoolId = requestedSchoolId;
 
             if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
@@ -368,31 +307,15 @@ module.exports = class SchoolManager {
      */
     async restoreSchool({ __token, __role, __params, __query, schoolId }) {
         try {
-            const roleError = this._requireRoleData(__role);
-            if (roleError) return roleError;
+            const accessError = this._requireSuperadmin(__role);
+            if (accessError) return accessError;
 
             const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
 
             if (!targetSchoolId) {
                 return { errors: ['School ID is required'] };
             }
-
-            const actor = await this._getActorFromToken(__token);
-            if (!actor || actor.status !== CONSTANTS.USER_STATUS.ACTIVE) {
-                return { errors: ['Authentication required'] };
-            }
-
-            let school = null;
-            if (rbacHelper.isSuperadmin(actor.role)) {
-                school = await School.findById(targetSchoolId);
-            } else if (rbacHelper.isSchoolAdmin(actor.role)) {
-                school = await School.findOne({
-                    _id: targetSchoolId,
-                    administrators: actor._id,
-                });
-            } else {
-                return { errors: ['Access denied'] };
-            }
+            const school = await School.findById(targetSchoolId);
 
             if (!school) {
                 return { errors: ['School not found'] };
@@ -482,13 +405,14 @@ module.exports = class SchoolManager {
             }
 
             const targetSchoolId = this._resolveRequestedSchoolId({ __params, __query, schoolId });
+            const targetAdminId = adminId || (__params && (__params.adminId || __params.userId)) || (__query && (__query.adminId || __query.userId));
 
-            if (!targetSchoolId || !adminId) {
+            if (!targetSchoolId || !targetAdminId) {
                 return { errors: ['School ID and Admin ID are required'] };
             }
 
             // Verify admin exists and is a school_admin
-            const admin = await User.findById(adminId);
+            const admin = await User.findById(targetAdminId);
             if (!admin) {
                 return { errors: ['Administrator not found'] };
             }
@@ -507,7 +431,7 @@ module.exports = class SchoolManager {
                 return { errors: ['School not found'] };
             }
 
-            await school.addAdministrator(adminId);
+            await school.addAdministrator(targetAdminId);
 
             // Invalidate cache
             await this.cache.key.delete({ key: `school:${targetSchoolId}` });

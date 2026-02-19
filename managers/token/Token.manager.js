@@ -62,10 +62,10 @@ module.exports = class TokenManager {
 
     /** generate shortId based on a longId */
     v1_createShortToken({__longToken, __device}){
-
-
         let decoded = __longToken;
-        console.log(decoded);
+        if (!decoded || !decoded.userId || !decoded.userKey) {
+            return { error: 'invalid' };
+        }
         
         let shortToken = this.genShortToken({
             userId: decoded.userId, 

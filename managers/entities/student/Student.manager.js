@@ -18,13 +18,9 @@ module.exports = class StudentManager {
       "get=getStudent",
       "get=getWithdrawnStudent",
       "put=updateStudent",
-      "post=updateStudent",
       "delete=withdrawnStudent",
-      "post=withdrawnStudent",
       "put=restoreStudent",
-      "post=restoreStudent",
       "put=transferStudent",
-      "post=transferStudent",
     ];
   }
 
@@ -125,7 +121,7 @@ module.exports = class StudentManager {
 
       await session.commitTransaction();
 
-      return { student };
+      return { student, code: 201 };
     } catch (error) {
       await session.abortTransaction();
       console.error("Enroll student error:", error);

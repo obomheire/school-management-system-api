@@ -84,7 +84,8 @@ module.exports = class AuthManager {
 
             return {
                 user: safeUser,
-                longToken
+                longToken,
+                code: 201,
             };
 
         } catch (error) {

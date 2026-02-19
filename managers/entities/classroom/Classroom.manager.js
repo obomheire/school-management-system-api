@@ -16,13 +16,9 @@ module.exports = class ClassroomManager {
             'get=listDeletedClassrooms',
             'get=getClassroom',
             'put=updateClassroom',
-            'post=updateClassroom',
             'delete=deleteClassroom',
-            'post=deleteClassroom',
             'put=restoreClassroom',
-            'post=restoreClassroom',
             'delete=permanentlyDeleteClassroom',
-            'post=permanentlyDeleteClassroom'
         ];
     }
 
@@ -57,7 +53,7 @@ module.exports = class ClassroomManager {
 
             await classroom.save();
 
-            return { classroom };
+            return { classroom, code: 201 };
 
         } catch (error) {
             console.error('Create classroom error:', error);

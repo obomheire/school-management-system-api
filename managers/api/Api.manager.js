@@ -121,6 +121,26 @@ module.exports = class ApiHandler {
         return result;
     }
 
+    _normalizeValidationErrors(validationErrors){
+        if (!Array.isArray(validationErrors)) return ['Validation failed'];
+        return validationErrors.map((error) => error.message || error.log || 'Validation failed');
+    }
+
+    _deriveStatusCodeFromErrors(errors = []){
+        const messages = (Array.isArray(errors) ? errors : [errors])
+            .filter(Boolean)
+            .map((error) => String(error).toLowerCase());
+
+        if (!messages.length) return 400;
+        if (messages.some((msg) => msg.includes('failed to'))) return 500;
+        if (messages.some((msg) => msg.includes('authentication required') || msg.includes('missing token') || msg.includes('unauthorized') || msg.includes('invalid token') || msg.includes('invalid or expired token'))) return 401;
+        if (messages.some((msg) => msg.includes('access denied') || msg.includes('forbidden') || msg.includes('superadmin role required') || msg.includes('invalid user role'))) return 403;
+        if (messages.some((msg) => msg.includes('not found'))) return 404;
+        if (messages.some((msg) => msg.includes('already exists') || msg.includes('already registered') || msg.includes('already taken') || msg.includes('duplicate'))) return 409;
+        if (messages.some((msg) => msg.includes('required') || msg.includes('invalid') || msg.includes('must be'))) return 422;
+        return 400;
+    }
+
      /** a middle for executing admin apis trough HTTP */
     async mw(req, res, next){
 
@@ -151,6 +171,31 @@ module.exports = class ApiHandler {
             /** executed after all middleware finished */
 
             let body = req.body || {};
+            const validationInput = {
+                ...(req.params || {}),
+                ...(req.query || {}),
+                ...body,
+            };
+
+            const targetManager = this.managers[moduleName];
+            const validatorGroup = targetManager && targetManager.validators && targetManager.validators[moduleName];
+            const validator = validatorGroup && validatorGroup[fnName];
+            const trimmer = validatorGroup && validatorGroup[`${fnName}Trimmer`];
+
+            if (trimmer) {
+                body = await trimmer(validationInput);
+            }
+            if (validator) {
+                const validationErrors = await validator(body);
+                if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+                    return this.managers.responseDispatcher.dispatch(res, {
+                        ok: false,
+                        code: 422,
+                        errors: this._normalizeValidationErrors(validationErrors),
+                    });
+                }
+            }
+
             let result = await this._exec({targetModule: this.managers[moduleName], fnName, data: {
                 ...body, 
                 ...results,
@@ -163,11 +208,20 @@ module.exports = class ApiHandler {
             } else {
                 
                 if(result.errors){
-                    return this.managers.responseDispatcher.dispatch(res, {ok: false, errors: result.errors});
+                    return this.managers.responseDispatcher.dispatch(res, {
+                        ok: false,
+                        code: result.code || this._deriveStatusCodeFromErrors(result.errors),
+                        errors: result.errors,
+                    });
                 } else if(result.error){
-                    return this.managers.responseDispatcher.dispatch(res, {ok: false, message: result.error});
+                    return this.managers.responseDispatcher.dispatch(res, {
+                        ok: false,
+                        code: result.code || this._deriveStatusCodeFromErrors([result.error]),
+                        message: result.error,
+                    });
                 } else {
-                    return this.managers.responseDispatcher.dispatch(res, {ok:true, data: result});
+                    const { code, ...responseData } = result;
+                    return this.managers.responseDispatcher.dispatch(res, {ok:true, code, data: responseData});
                 }
             }
         }});

@@ -52,10 +52,22 @@ Most API endpoints require authentication. Include the following header in your 
 Authorization: Bearer YOUR_SHORT_TOKEN
 ```
 
+Legacy compatibility is also supported:
+
+```bash
+token: YOUR_SHORT_TOKEN
+```
+
 ## Token Management
 The system uses a dual-token system:
 - **Long Token**: Valid for 3 years, used only to generate short tokens. Long tokens CANNOT be used to authenticate API requests.
 - **Short Token**: Valid for 1 year, used for authenticating API requests
+
+### Authentication Flow
+1. Register or login to receive a `longToken`
+2. Call `POST /token/v1_createShortToken` with the long token
+3. Use the returned `shortToken` on all protected routes
+4. Protected middleware accepts `Authorization: Bearer <shortToken>` (or legacy `token` header)
 
 ## Error Handling
 The API uses conventional HTTP response codes to indicate success or failure of requests. In general:
@@ -81,6 +93,15 @@ All error responses follow this format:
 - `409 Conflict`: Request conflicts with current state of the server (e.g., duplicate entry)
 - `422 Unprocessable Entity`: Request validation failed
 - `500 Internal Server Error`: An unexpected server error occurred
+
+### Runtime Error-Code Alignment
+The API runtime maps errors using these rules:
+- Validation/invalid input/required fields -> `422`
+- Auth token missing/invalid -> `401`
+- Role or scope violations -> `403`
+- Missing resources -> `404`
+- Duplicate or conflict conditions -> `409`
+- Internal operation failures (`Failed to ...`) -> `500`
 
 ### Common Error Messages
 - `"Authentication required"`: Missing or invalid authorization header
@@ -410,7 +431,7 @@ curl -X POST https://your-domain.com/api/school/createSchool \
 ---
 
 ### List Schools
-Get a paginated list of schools.
+Get a paginated list of schools (Superadmin only).
 
 #### Endpoint
 ```
@@ -475,7 +496,7 @@ curl -X GET "https://your-domain.com/api/school/listSchools?page=1&limit=10" \
 ---
 
 ### Get School
-Retrieve details of a specific school.
+Retrieve details of a specific school (Superadmin only).
 
 #### Endpoint
 ```
@@ -534,7 +555,7 @@ curl -X GET "https://your-domain.com/api/school/getSchool?schoolId=5f8b8c9a7d6e5
 ---
 
 ### Update School
-Update details of a specific school.
+Update details of a specific school (Superadmin only).
 
 #### Endpoint
 ```
@@ -697,7 +718,7 @@ curl -X DELETE "https://your-domain.com/api/school/deleteSchool?schoolId=5f8b8c9
 ---
 
 ### Restore School
-Restore a deleted school from the recycle bin.
+Restore a deleted school from the recycle bin (Superadmin only).
 
 #### Endpoint
 ```

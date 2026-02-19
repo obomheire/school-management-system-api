@@ -1,9 +1,10 @@
 const User = require('../managers/entities/user/user.mongoModel');
 const CONSTANTS = require('../managers/_common/constants');
+const extractToken = require('./_common/extractToken');
 
 module.exports = ({ managers }) => {
     return async ({ req, res, next, results }) => {
-        const token = req.headers.token;
+        const token = extractToken(req.headers);
         if (!token) {
             return managers.responseDispatcher.dispatch(res, {
                 ok: false,
