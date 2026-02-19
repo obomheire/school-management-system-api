@@ -12,6 +12,17 @@
 https://your-domain.com/api
 ```
 
+## Recent Changes
+- School management routes are now superadmin-only for list/get/update/restore/admin assignment.
+- Authentication middleware supports both `Authorization: Bearer <token>` and legacy `token` header.
+- Validation is centralized and enforced before manager execution.
+- HTTP status behavior is standardized:
+  - `201` for successful create operations
+  - `422` for validation errors
+  - role/auth/resource/conflict errors mapped consistently at runtime
+- Registration supports `school_admin` without `assignedSchool`; superadmin can assign school later.
+- Legacy `POST` aliases for update/delete/restore/transfer endpoints were removed in favor of RESTful methods.
+
 ## Health Check
 Check application, database, and redis connectivity status.
 
@@ -188,8 +199,7 @@ curl -X POST https://your-domain.com/api/auth/register \
     "username": "johndoe",
     "email": "john@example.com",
     "password": "securePassword123",
-    "role": "school_admin",
-    "assignedSchool": "5f8b8c9a7d6e5f4a3b2c1d0e"
+    "role": "school_admin"
   }'
 ```
 
@@ -201,7 +211,7 @@ curl -X POST https://your-domain.com/api/auth/register \
     "username": "string",
     "email": "string",
     "role": "string",
-    "assignedSchool": "string",
+    "assignedSchool": "string|null",
     "status": "active|inactive|suspended",
     "createdAt": "timestamp",
     "updatedAt": "timestamp"
@@ -246,7 +256,7 @@ curl -X POST https://your-domain.com/api/auth/login \
     "username": "string",
     "email": "string",
     "role": "string",
-    "assignedSchool": "string",
+    "assignedSchool": "string|null",
     "status": "active|inactive|suspended",
     "createdAt": "timestamp",
     "updatedAt": "timestamp"
