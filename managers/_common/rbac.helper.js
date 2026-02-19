@@ -92,6 +92,6 @@ module.exports = {
      * @returns {Boolean}
      */
     requiresSchoolAssignment(role) {
-        return role === CONSTANTS.ROLES.SCHOOL_ADMIN;
+        return false;
     }
 };

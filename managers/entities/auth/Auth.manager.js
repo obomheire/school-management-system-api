@@ -27,11 +27,6 @@ module.exports = class AuthManager {
                 return { errors: ['Invalid role'] };
             }
 
-            // Check if school assignment is required
-            if (rbacHelper.requiresSchoolAssignment(role) && !assignedSchool) {
-                return { errors: ['School Admin must be assigned to a school'] };
-            }
-
             // If school is assigned, verify it exists
             if (assignedSchool) {
                 const school = await School.findById(assignedSchool);

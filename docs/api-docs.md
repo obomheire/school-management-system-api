@@ -124,7 +124,6 @@ The API runtime maps errors using these rules:
 - `"Student not found"`: Requested student does not exist
 - `"Classroom not found"`: Requested classroom does not exist
 - `"Invalid role"`: Provided role is not valid
-- `"School Admin must be assigned to a school"`: School admin needs to be assigned to a school
 - `"Assigned school not found"`: Referenced school for assignment does not exist
 - `"Assigned school is not active"`: Referenced school is inactive
 - `"No school assigned to this administrator"`: Administrator has no assigned school
@@ -177,7 +176,7 @@ POST /auth/register
   "email": "string",
   "password": "string",
   "role": "superadmin|school_admin",
-  "assignedSchool": "string (optional, required for school_admin)"
+  "assignedSchool": "string (optional, can be assigned later by superadmin)"
 }
 ```
 

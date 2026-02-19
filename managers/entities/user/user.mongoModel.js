@@ -32,19 +32,7 @@ const userSchema = new mongoose.Schema({
     assignedSchool: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'School',
-        required: function() {
-            return this.role === CONSTANTS.ROLES.SCHOOL_ADMIN;
-        },
-        validate: {
-            validator: function(value) {
-                // If role is school_admin, assignedSchool must be present
-                if (this.role === CONSTANTS.ROLES.SCHOOL_ADMIN) {
-                    return value != null;
-                }
-                return true;
-            },
-            message: 'School Admin must be assigned to a school'
-        }
+        required: false
     },
     key: {
         type: String,

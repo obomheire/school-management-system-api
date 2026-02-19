@@ -62,7 +62,7 @@ module.exports = {
     },
     text: {
         type: 'String',
-        length: {min: 3, max:15},
+        length: {min: 3, max:50},
     },
     longText: {
         type: 'String',
