@@ -53,8 +53,9 @@ module.exports = {
 
     assignAdministrator: [
         {
-            model: 'id',
             path: 'adminId',
+            type: 'String',
+            regex: /^[0-9a-fA-F]{24}$/,
             required: true
         }
     ]

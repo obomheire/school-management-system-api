@@ -22,8 +22,9 @@ module.exports = {
             required: true
         },
         {
-            model: 'id',
             path: 'assignedSchool',
+            type: 'String',
+            regex: /^[0-9a-fA-F]{24}$/,
             required: false
         }
     ],

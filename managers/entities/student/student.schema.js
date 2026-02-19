@@ -12,7 +12,8 @@ module.exports = {
         },
         {
             path: 'dateOfBirth',
-            type: 'Date',
+            type: 'String',
+            custom: 'date',
             required: true
         },
         {
@@ -22,8 +23,9 @@ module.exports = {
             required: true
         },
         {
-            model: 'id',
             path: 'classroomId',
+            type: 'String',
+            regex: /^[0-9a-fA-F]{24}$/,
             required: true
         },
         {
@@ -59,13 +61,15 @@ module.exports = {
 
     transferStudent: [
         {
-            model: 'id',
             path: 'targetSchoolId',
+            type: 'String',
+            regex: /^[0-9a-fA-F]{24}$/,
             required: true
         },
         {
-            model: 'id',
             path: 'targetClassroomId',
+            type: 'String',
+            regex: /^[0-9a-fA-F]{24}$/,
             required: true
         },
         {

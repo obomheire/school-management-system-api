@@ -53,5 +53,11 @@ module.exports = {
         // Student ID must be alphanumeric and at least 3 characters
         if (typeof data !== 'string') return false;
         return data.trim().length >= 3 && /^[a-zA-Z0-9\-_]+$/.test(data);
+    },
+
+    'date': (data)=>{
+        if (data === null || data === undefined) return false;
+        const parsed = new Date(data);
+        return !Number.isNaN(parsed.getTime());
     }
 }
